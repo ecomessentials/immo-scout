@@ -9,12 +9,12 @@ RUN apt-get update && apt-get install -y \
     libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
     libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 \
     libcairo2 libasound2 libx11-6 libxcb1 libxext6 \
+    fonts-liberation fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install chromium
-RUN playwright install-deps chromium
 
 COPY . .
 
