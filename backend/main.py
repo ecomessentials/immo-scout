@@ -5,7 +5,7 @@ from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from database import get_config, update_config, get_listings, get_stats, get_scan_logs
+from database import get_config, update_config, get_listings, get_stats, get_scan_logs, get_db
 from telegram_bot import send_startup_message, send_test_message
 from scheduler import run_all_scrapers
 from models import SearchFilter, ListingResponse
@@ -27,16 +27,23 @@ scheduler = AsyncIOScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Sync scan_interval to 300 in Supabase so the DB and code stay consistent.
+    try:
+        get_db().table("search_config").update({"scan_interval": 300}).neq("id", "").execute()
+        logger.info("search_config: scan_interval set to 300")
+    except Exception as e:
+        logger.warning(f"Could not update scan_interval in Supabase: {e}")
+
     config = await get_config()
     scheduler.add_job(
         run_all_scrapers,
         "interval",
-        minutes=config.scan_interval,
+        hours=5,
         id="scrape_job",
         replace_existing=True,
     )
     scheduler.start()
-    logger.info(f"Scheduler started, interval: {config.scan_interval} min")
+    logger.info("Scheduler started, interval: 5 hours")
     await send_startup_message(
         interval=config.scan_interval,
         cities=config.cities,
@@ -128,8 +135,8 @@ async def api_get_config():
 async def api_update_config(f: SearchFilter):
     updated = await update_config(f)
     if scheduler.running:
-        scheduler.reschedule_job("scrape_job", trigger="interval", minutes=f.scan_interval)
-        logger.info(f"Rescheduled job to {f.scan_interval} min interval")
+        scheduler.reschedule_job("scrape_job", trigger="interval", hours=5)
+        logger.info("Rescheduled job to 5 hours interval")
     return updated
 
 

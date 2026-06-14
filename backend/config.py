@@ -10,7 +10,7 @@ DEFAULT_FILTER = {
     "cities": ["Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen"],
     "keywords": ["renovierungsbedürftig", "sanierungsbedürftig", "renovierung", "altbau", "modernisierung"],
     "active": True,
-    "scan_interval": 15,
+    "scan_interval": 300,
 }
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
