@@ -1,39 +1,53 @@
 import asyncio
 import logging
+import random
 import re
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
 from models import Listing, SearchFilter
-from .base import BaseScraper, BROWSER_ARGS, USER_AGENT
+from .base import BaseScraper
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.kleinanzeigen.de"
 
+LAUNCH_ARGS = [
+    "--no-sandbox",
+    "--disable-blink-features=AutomationControlled",
+    "--disable-dev-shm-usage",
+]
+
+CONTEXT_OPTIONS = {
+    "user_agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "viewport": {"width": 1280, "height": 800},
+    "locale": "de-DE",
+    "timezone_id": "Europe/Berlin",
+}
+
+HIDE_WEBDRIVER = "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+
 
 class EbayScraper(BaseScraper):
     name = "ebay"
 
-    def _build_url(self, city: str, f: SearchFilter) -> str:
-        slug = self.city_slug(city)
-        return (
-            f"{BASE_URL}/s-wohnung-kaufen/{slug}"
-            f"/preis::{f.max_price}"
-            f"/k0c196l{{}}"
-        )
-
     async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
         listings: list[Listing] = []
         slug = self.city_slug(city)
+        # No keyword restriction in the URL – filter by keywords in code after scraping.
         url = f"{BASE_URL}/s-wohnung-kaufen/{slug}/preis::{f.max_price}/k0c196"
         logger.info(f"[eBay] [{city}] Loading: {url}")
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True, args=BROWSER_ARGS)
-            context = await browser.new_context(user_agent=USER_AGENT)
+            browser = await p.chromium.launch(headless=True, args=LAUNCH_ARGS)
+            context = await browser.new_context(**CONTEXT_OPTIONS)
+            await context.add_init_script(HIDE_WEBDRIVER)
             page = await context.new_page()
             try:
+                await asyncio.sleep(random.uniform(2, 4))
                 await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                await asyncio.sleep(3)
 
                 try:
                     await page.click("#gdpr-banner-accept", timeout=3000)
@@ -41,8 +55,15 @@ class EbayScraper(BaseScraper):
                 except Exception:
                     pass
 
+                # Wait for listing items; log clearly if blocked.
+                try:
+                    await page.wait_for_selector("article.aditem", timeout=10000)
+                except PlaywrightTimeout:
+                    logger.warning(f"[eBay] [{city}] blockiert oder keine Ergebnisse")
+                    return listings
+
                 items = await page.query_selector_all("article.aditem")
-                logger.info(f"[eBay] [{city}] Found {len(items)} items")
+                logger.info(f"[eBay] [{city}] Found {len(items)} items (vor Keyword-Filter)")
 
                 for item in items:
                     try:
@@ -81,6 +102,7 @@ class EbayScraper(BaseScraper):
                         img_el = await item.query_selector("img.imagebox-thumbnail")
                         image_url = await img_el.get_attribute("src") if img_el else None
 
+                        # Keyword filter applied in code, not via URL.
                         combined_text = f"{title} {description}"
                         if not self.matches_keywords(combined_text, f.keywords):
                             continue
@@ -105,6 +127,8 @@ class EbayScraper(BaseScraper):
                         )
                     except Exception as e:
                         logger.warning(f"[eBay] [{city}] Item parse error: {e}")
+
+                logger.info(f"[eBay] [{city}] {len(listings)} listings nach Keyword-Filter")
             except Exception as e:
                 logger.error(f"[eBay] [{city}] Scrape error: {e}")
             finally:

@@ -1,12 +1,33 @@
 import asyncio
 import logging
-from playwright.async_api import async_playwright
+import random
+import re
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
 from models import Listing, SearchFilter
-from .base import BaseScraper, BROWSER_ARGS, USER_AGENT
+from .base import BaseScraper
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.immobilienscout24.de"
+
+LAUNCH_ARGS = [
+    "--no-sandbox",
+    "--disable-blink-features=AutomationControlled",
+    "--disable-dev-shm-usage",
+]
+
+CONTEXT_OPTIONS = {
+    "user_agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "viewport": {"width": 1280, "height": 800},
+    "locale": "de-DE",
+    "timezone_id": "Europe/Berlin",
+}
+
+HIDE_WEBDRIVER = "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
 
 
 class ImmoScout24Scraper(BaseScraper):
@@ -25,26 +46,40 @@ class ImmoScout24Scraper(BaseScraper):
     async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
         listings: list[Listing] = []
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True, args=BROWSER_ARGS)
-            context = await browser.new_context(user_agent=USER_AGENT)
+            browser = await p.chromium.launch(headless=True, args=LAUNCH_ARGS)
+            context = await browser.new_context(**CONTEXT_OPTIONS)
+            await context.add_init_script(HIDE_WEBDRIVER)
             page = await context.new_page()
             try:
                 for page_num in range(1, 4):
                     url = self._build_url(city, f, page_num)
+                    await asyncio.sleep(random.uniform(2, 4))
                     logger.info(f"[ImmoScout24] [{city}] Loading page {page_num}: {url}")
                     await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                    await asyncio.sleep(3)
 
                     if page_num == 1:
                         try:
                             await page.click('[data-testid="uc-accept-all-button"]', timeout=3000)
-                            await asyncio.sleep(2)
+                            await asyncio.sleep(1)
                         except Exception:
                             pass
 
-                    items = await page.query_selector_all('article[data-obid], [data-testid="result-list-entry"]')
+                    # Wait for primary selector; fall back to alternate on timeout.
+                    items = []
+                    try:
+                        await page.wait_for_selector("article[data-obid]", timeout=10000)
+                        items = await page.query_selector_all("article[data-obid]")
+                    except PlaywrightTimeout:
+                        logger.warning(f"[ImmoScout24] [{city}] Page {page_num}: blockiert oder keine Ergebnisse (data-obid)")
+                        try:
+                            await page.wait_for_selector('[data-testid="result-list-entry"]', timeout=5000)
+                            items = await page.query_selector_all('[data-testid="result-list-entry"]')
+                        except PlaywrightTimeout:
+                            logger.warning(f"[ImmoScout24] [{city}] Page {page_num}: Fallback-Selector ebenfalls leer – überspringe")
+                            break
+
                     if not items:
-                        logger.info(f"[ImmoScout24] [{city}] No items on page {page_num}, stopping")
+                        logger.info(f"[ImmoScout24] [{city}] Page {page_num}: keine Items, stoppe")
                         break
 
                     page_listings = 0
@@ -55,7 +90,6 @@ class ImmoScout24Scraper(BaseScraper):
                                 link_el = await item.query_selector("a[href*='/expose/']")
                                 if link_el:
                                     href = await link_el.get_attribute("href") or ""
-                                    import re
                                     m = re.search(r"/expose/(\d+)", href)
                                     obid = m.group(1) if m else ""
                             if not obid:
@@ -120,7 +154,6 @@ class ImmoScout24Scraper(BaseScraper):
                     logger.info(f"[ImmoScout24] [{city}] Page {page_num}: {page_listings} listings parsed")
                     if page_listings == 0:
                         break
-                    await asyncio.sleep(2)
             except Exception as e:
                 logger.error(f"[ImmoScout24] [{city}] Scrape error: {e}")
             finally:
