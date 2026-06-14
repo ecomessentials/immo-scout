@@ -10,11 +10,13 @@ import FilterSidebar from '@/components/FilterSidebar'
 import ListingGrid from '@/components/ListingGrid'
 import ScanButton from '@/components/ScanButton'
 import TelegramStatus from '@/components/TelegramStatus'
+import LogViewer from '@/components/LogViewer'
 import Link from 'next/link'
 
 function Dashboard() {
   const searchParams = useSearchParams()
   const [offset, setOffset] = useState(0)
+  const [showLogs, setShowLogs] = useState(false)
   const LIMIT = 50
 
   const filterParams: FilterParams = {
@@ -50,7 +52,10 @@ function Dashboard() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <TelegramStatus />
-          <ScanButton lastScan={stats?.last_scan_at ?? null} />
+          <ScanButton
+            lastScan={stats?.last_scan_at ?? null}
+            onScanStart={() => setShowLogs(true)}
+          />
           <Link
             href="/settings"
             className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
@@ -78,6 +83,8 @@ function Dashboard() {
           />
         </main>
       </div>
+
+      <LogViewer open={showLogs} onClose={() => setShowLogs(false)} />
     </div>
   )
 }

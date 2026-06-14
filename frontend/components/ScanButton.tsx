@@ -5,9 +5,10 @@ import { triggerScan } from '@/lib/api'
 
 interface Props {
   lastScan: string | null
+  onScanStart?: () => void
 }
 
-export default function ScanButton({ lastScan }: Props) {
+export default function ScanButton({ lastScan, onScanStart }: Props) {
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'started' | 'error'>('idle')
 
@@ -17,6 +18,7 @@ export default function ScanButton({ lastScan }: Props) {
     try {
       await triggerScan()
       setStatus('started')
+      onScanStart?.()
       setTimeout(() => setStatus('idle'), 4000)
     } catch {
       setStatus('error')

@@ -3,17 +3,24 @@ from contextlib import asynccontextmanager
 from typing import Optional
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database import get_config, update_config, get_listings, get_stats, get_scan_logs
 from telegram_bot import send_startup_message, send_test_message
 from scheduler import run_all_scrapers
 from models import SearchFilter, ListingResponse
+from log_stream import SSELogHandler, log_event_stream
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Attach the SSE handler to the root logger so every log record is captured.
+_sse_handler = SSELogHandler()
+_sse_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s – %(message)s"))
+logging.getLogger().addHandler(_sse_handler)
 
 scheduler = AsyncIOScheduler()
 
@@ -132,3 +139,16 @@ async def api_telegram_test():
     if success:
         return {"status": "ok", "message": "Test message sent"}
     raise HTTPException(status_code=500, detail="Failed to send Telegram message – check credentials")
+
+
+@app.get("/api/logs/stream")
+async def api_logs_stream():
+    return StreamingResponse(
+        log_event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
