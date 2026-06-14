@@ -1,8 +1,7 @@
-import asyncio
 import logging
-import random
 import re
-from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
+import xml.etree.ElementTree as ET
+import httpx
 from models import Listing, SearchFilter
 from .base import BaseScraper
 
@@ -10,24 +9,15 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.kleinanzeigen.de"
 
-LAUNCH_ARGS = [
-    "--no-sandbox",
-    "--disable-blink-features=AutomationControlled",
-    "--disable-dev-shm-usage",
-]
-
-CONTEXT_OPTIONS = {
-    "user_agent": (
+HEADERS = {
+    "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/120.0.0.0 Safari/537.36"
     ),
-    "viewport": {"width": 1280, "height": 800},
-    "locale": "de-DE",
-    "timezone_id": "Europe/Berlin",
+    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+    "Accept-Language": "de-DE,de;q=0.9",
 }
-
-HIDE_WEBDRIVER = "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
 
 
 class EbayScraper(BaseScraper):
@@ -36,101 +26,81 @@ class EbayScraper(BaseScraper):
     async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
         listings: list[Listing] = []
         slug = self.city_slug(city)
-        # No keyword restriction in the URL – filter by keywords in code after scraping.
-        url = f"{BASE_URL}/s-wohnung-kaufen/{slug}/preis::{f.max_price}/k0c196"
-        logger.info(f"[eBay] [{city}] Loading: {url}")
+        url = f"{BASE_URL}/s-wohnung-kaufen/{slug}/preis::{f.max_price}/k0c196.rss"
+        logger.info(f"[eBay] [{city}] Fetching RSS: {url}")
 
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True, args=LAUNCH_ARGS)
-            context = await browser.new_context(**CONTEXT_OPTIONS)
-            await context.add_init_script(HIDE_WEBDRIVER)
-            page = await context.new_page()
+        try:
+            async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+                response = await client.get(url, headers=HEADERS)
+                response.raise_for_status()
+        except Exception as e:
+            logger.error(f"[eBay] [{city}] HTTP error: {e}")
+            return listings
+
+        try:
+            # Use bytes so ElementTree respects the XML-declared encoding.
+            root = ET.fromstring(response.content)
+        except ET.ParseError as e:
+            logger.error(f"[eBay] [{city}] XML parse error: {e}")
+            return listings
+
+        channel = root.find("channel")
+        if channel is None:
+            logger.warning(f"[eBay] [{city}] Kein <channel> im RSS-Feed")
+            return listings
+
+        items = channel.findall("item")
+        logger.info(f"[eBay] [{city}] {len(items)} Items im RSS-Feed (vor Filtern)")
+
+        for item in items:
             try:
-                await asyncio.sleep(random.uniform(2, 4))
-                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                title = (item.findtext("title") or "").strip()
+                link = (item.findtext("link") or "").strip()
+                description_html = (item.findtext("description") or "").strip()
+                guid = (item.findtext("guid") or link).strip()
 
-                try:
-                    await page.click("#gdpr-banner-accept", timeout=3000)
-                    await asyncio.sleep(1)
-                except Exception:
-                    pass
+                if not link or not title:
+                    continue
 
-                # Wait for listing items; log clearly if blocked.
-                try:
-                    await page.wait_for_selector("article.aditem", timeout=10000)
-                except PlaywrightTimeout:
-                    logger.warning(f"[eBay] [{city}] blockiert oder keine Ergebnisse")
-                    return listings
+                # ID aus Link oder GUID extrahieren
+                id_match = re.search(r"/(\d+)-[^/]*$", link) or re.search(r"(\d+)", guid)
+                raw_id = id_match.group(1) if id_match else re.sub(r"\W", "", link)[-12:]
+                external_id = self.build_external_id("ebay", raw_id)
 
-                items = await page.query_selector_all("article.aditem")
-                logger.info(f"[eBay] [{city}] Found {len(items)} items (vor Keyword-Filter)")
+                # Preis aus HTML-Description: "120.000 €" oder "120000 €"
+                price_match = re.search(r"([\d.,]+)\s*€", description_html)
+                price = self.parse_price(price_match.group(1)) if price_match else None
 
-                for item in items:
-                    try:
-                        link_el = await item.query_selector("a.ellipsis, h2 a")
-                        href = ""
-                        if link_el:
-                            href = await link_el.get_attribute("href") or ""
-                        if not href:
-                            continue
-                        listing_url = href if href.startswith("http") else BASE_URL + href
+                # HTML-Tags entfernen für Textanalyse
+                description_text = re.sub(r"<[^>]+>", " ", description_html)
+                description_text = re.sub(r"\s+", " ", description_text).strip()
 
-                        id_match = re.search(r"/(\d+)-", href)
-                        raw_id = id_match.group(1) if id_match else href.split("/")[-1]
-                        external_id = self.build_external_id("ebay", raw_id)
+                sqm = self.parse_sqm(title + " " + description_text)
 
-                        title_el = await item.query_selector("h2.text-module-begin, h2")
-                        title = (await title_el.inner_text()).strip() if title_el else f"Wohnung in {city}"
+                # Filter
+                combined = f"{title} {description_text}"
+                if not self.matches_keywords(combined, f.keywords):
+                    continue
+                if price and price > f.max_price:
+                    continue
+                if sqm and (sqm < f.min_sqm or sqm > f.max_sqm):
+                    continue
 
-                        price_el = await item.query_selector(
-                            "p.aditem-main--middle--price-shipping--price"
-                        )
-                        price_text = (await price_el.inner_text()).strip() if price_el else ""
-                        price = self.parse_price(price_text)
-
-                        desc_el = await item.query_selector("p.aditem-main--middle--description")
-                        description = (await desc_el.inner_text()).strip() if desc_el else ""
-
-                        sqm = self.parse_sqm(title + " " + description)
-
-                        location_el = await item.query_selector("div.aditem-main--top--left")
-                        item_city = city
-                        if location_el:
-                            loc_text = (await location_el.inner_text()).strip()
-                            item_city = loc_text.split("\n")[0].strip() or city
-
-                        img_el = await item.query_selector("img.imagebox-thumbnail")
-                        image_url = await img_el.get_attribute("src") if img_el else None
-
-                        # Keyword filter applied in code, not via URL.
-                        combined_text = f"{title} {description}"
-                        if not self.matches_keywords(combined_text, f.keywords):
-                            continue
-                        if price and price > f.max_price:
-                            continue
-                        if sqm and (sqm < f.min_sqm or sqm > f.max_sqm):
-                            continue
-
-                        listings.append(
-                            Listing(
-                                external_id=external_id,
-                                source=self.name,
-                                title=title,
-                                price=price,
-                                sqm=sqm,
-                                city=item_city,
-                                description=description[:500] if description else None,
-                                image_url=image_url,
-                                listing_url=listing_url,
-                                condition="renovierungsbedürftig",
-                            )
-                        )
-                    except Exception as e:
-                        logger.warning(f"[eBay] [{city}] Item parse error: {e}")
-
-                logger.info(f"[eBay] [{city}] {len(listings)} listings nach Keyword-Filter")
+                listings.append(
+                    Listing(
+                        external_id=external_id,
+                        source=self.name,
+                        title=title,
+                        price=price,
+                        sqm=sqm,
+                        city=city,
+                        description=description_text[:500] if description_text else None,
+                        listing_url=link,
+                        condition="renovierungsbedürftig",
+                    )
+                )
             except Exception as e:
-                logger.error(f"[eBay] [{city}] Scrape error: {e}")
-            finally:
-                await browser.close()
+                logger.warning(f"[eBay] [{city}] Item parse error: {e}")
+
+        logger.info(f"[eBay] [{city}] {len(listings)} listings nach Filtern")
         return listings
