@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { X, CheckCircle, XCircle, Loader2, Search } from 'lucide-react'
 
 interface Step {
   status: 'ok' | 'error' | 'info' | 'done'
@@ -13,20 +14,35 @@ interface Props {
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+// 4 scrapers × 15 cities × 2 steps each + ~8 summary steps
+const EXPECTED_STEPS = 128
 
-function StepIcon({ status, isLast }: { status: Step['status']; isLast: boolean }) {
-  if (status === 'ok') return <span className="text-base">✅</span>
-  if (status === 'error') return <span className="text-base">❌</span>
-  // info: blink only if it's the last step (still running), otherwise static
+function StepRow({ step, isLast, isDone }: { step: Step; isLast: boolean; isDone: boolean }) {
+  const pulsing = step.status === 'info' && isLast && !isDone
   return (
-    <span className={`text-base ${isLast ? 'animate-pulse' : ''}`}>🔍</span>
+    <div className="flex items-start gap-3 animate-slide-up">
+      <span className="shrink-0 mt-0.5">
+        {step.status === 'ok' && <CheckCircle size={16} className="text-emerald-500" />}
+        {step.status === 'error' && <XCircle size={16} className="text-red-500" />}
+        {step.status === 'info' && (
+          <Loader2 size={16} className={`text-blue-500 ${pulsing ? 'animate-spin' : ''}`} />
+        )}
+      </span>
+      <p className={`text-sm leading-5 ${
+        step.status === 'ok' ? 'text-gray-800 dark:text-gray-200' :
+        step.status === 'error' ? 'text-red-600 dark:text-red-400' :
+        'text-blue-700 dark:text-blue-400 font-medium'
+      }`}>
+        {step.message}
+      </p>
+    </div>
   )
 }
 
 export default function ScanProgress({ open, onClose }: Props) {
   const [steps, setSteps] = useState<Step[]>([])
   const [done, setDone] = useState(false)
-  const [connectionError, setConnectionError] = useState(false)
+  const [connError, setConnError] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const esRef = useRef<EventSource | null>(null)
 
@@ -36,7 +52,7 @@ export default function ScanProgress({ open, onClose }: Props) {
       esRef.current = null
       setSteps([])
       setDone(false)
-      setConnectionError(false)
+      setConnError(false)
       return
     }
 
@@ -49,29 +65,21 @@ export default function ScanProgress({ open, onClose }: Props) {
         if (event.status === 'done') {
           setDone(true)
           es.close()
-          esRef.current = null
           return
         }
         setSteps((prev) => [...prev, event])
-      } catch {
-        // ignore malformed events
-      }
+      } catch { /* ignore */ }
     }
 
     es.onerror = () => {
-      setConnectionError(true)
+      setConnError(true)
       setDone(true)
       es.close()
-      esRef.current = null
     }
 
-    return () => {
-      es.close()
-      esRef.current = null
-    }
+    return () => { es.close() }
   }, [open])
 
-  // Auto-scroll to newest step
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [steps])
@@ -79,76 +87,74 @@ export default function ScanProgress({ open, onClose }: Props) {
   if (!open) return null
 
   const visibleSteps = steps.filter((s) => s.status !== 'done')
+  const progress = done ? 100 : Math.min(95, Math.round((visibleSteps.length / EXPECTED_STEPS) * 100))
+  const summary = visibleSteps.findLast((s) => s.message.includes('Scan abgeschlossen'))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div
-        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-        style={{ maxHeight: '80vh' }}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden" style={{ maxHeight: '80vh' }}>
+
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-          <div className="flex items-center gap-2.5">
-            {done ? (
-              <span className="w-2.5 h-2.5 bg-green-500 rounded-full" />
-            ) : (
-              <span className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse" />
-            )}
-            <h2 className="font-semibold text-gray-900 text-base">
-              {done ? 'Scan abgeschlossen' : 'Scan läuft…'}
-            </h2>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700 shrink-0">
+          <div className="flex items-center gap-3">
+            {done
+              ? <CheckCircle size={20} className="text-emerald-500" />
+              : <Search size={20} className="text-primary animate-pulse" />
+            }
+            <div>
+              <h2 className="font-semibold text-gray-900 dark:text-white text-sm">
+                {done ? 'Scan abgeschlossen' : 'Scan läuft…'}
+              </h2>
+              {done && summary && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{summary.message}</p>
+              )}
+            </div>
           </div>
+          {done && (
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 transition-all">
+              <X size={16} />
+            </button>
+          )}
         </div>
 
-        {/* Steps list */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          {visibleSteps.length === 0 && !connectionError && (
-            <p className="text-sm text-gray-400 text-center py-6 animate-pulse">
+        {/* Progress bar */}
+        <div className="h-1 bg-gray-100 dark:bg-slate-700 shrink-0">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Steps */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2.5">
+          {visibleSteps.length === 0 && !connError && (
+            <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-8 animate-pulse">
               Verbinde mit Server…
             </p>
           )}
-
-          {connectionError && (
-            <div className="flex items-start gap-2.5">
-              <span className="text-base shrink-0">❌</span>
-              <p className="text-sm text-red-600">
-                Verbindung zum Server konnte nicht hergestellt werden.
+          {connError && (
+            <div className="flex items-start gap-3">
+              <XCircle size={16} className="text-red-500 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-600 dark:text-red-400">
+                Verbindung zum Backend konnte nicht hergestellt werden.
               </p>
             </div>
           )}
-
-          {visibleSteps.map((step, i) => {
-            const isLast = i === visibleSteps.length - 1 && !done
-            return (
-              <div key={i} className="flex items-start gap-2.5">
-                <span className="shrink-0 mt-0.5">
-                  <StepIcon status={step.status} isLast={isLast} />
-                </span>
-                <p
-                  className={`text-sm leading-5 ${
-                    step.status === 'ok'
-                      ? 'text-gray-800'
-                      : step.status === 'error'
-                      ? 'text-red-600'
-                      : 'text-blue-700 font-medium'
-                  }`}
-                >
-                  {step.message}
-                </p>
-              </div>
-            )
-          })}
-
+          {visibleSteps.map((step, i) => (
+            <StepRow
+              key={i}
+              step={step}
+              isLast={i === visibleSteps.length - 1}
+              isDone={done}
+            />
+          ))}
           <div ref={bottomRef} />
         </div>
 
-        {/* Footer – only when done */}
+        {/* Footer */}
         {done && (
-          <div className="px-5 py-3 border-t border-gray-100 flex justify-end shrink-0">
-            <button
-              onClick={onClose}
-              className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
+          <div className="px-5 py-3 border-t border-gray-100 dark:border-slate-700 shrink-0 flex justify-end">
+            <button onClick={onClose} className="btn-primary">
               Fertig
             </button>
           </div>

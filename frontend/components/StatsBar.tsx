@@ -1,5 +1,6 @@
 'use client'
 
+import { Home, Sparkles, Clock, SearchCheck } from 'lucide-react'
 import { Stats } from '@/lib/types'
 
 function timeAgo(dateStr: string | null): string {
@@ -11,6 +12,27 @@ function timeAgo(dateStr: string | null): string {
   return `vor ${Math.floor(diff / 86400)} Tagen`
 }
 
+interface TileProps {
+  label: string
+  value: string
+  icon: React.ReactNode
+  color: string
+}
+
+function StatTile({ label, value, icon, color }: TileProps) {
+  return (
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl border-l-4 ${color} border border-gray-100 dark:border-slate-700 p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow duration-200`}>
+      <div>
+        <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">{label}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{value}</p>
+      </div>
+      <div className="text-gray-300 dark:text-slate-600">
+        {icon}
+      </div>
+    </div>
+  )
+}
+
 interface Props {
   stats: Stats | undefined
   loading: boolean
@@ -19,43 +41,42 @@ interface Props {
 export default function StatsBar({ stats, loading }: Props) {
   const activeSources = stats ? Object.keys(stats.by_source).length : 0
 
-  const tiles = [
-    {
-      label: 'Gesamt gefunden',
-      value: loading ? '–' : (stats?.total ?? 0).toString(),
-      icon: '🏠',
-    },
-    {
-      label: 'Heute neu',
-      value: loading ? '–' : (stats?.today ?? 0).toString(),
-      icon: '✨',
-    },
-    {
-      label: 'Letzter Scan',
-      value: loading ? '–' : timeAgo(stats?.last_scan_at ?? null),
-      icon: '🕐',
-    },
-    {
-      label: 'Aktive Portale',
-      value: loading ? '–' : `${activeSources}/4`,
-      icon: '🌐',
-    },
-  ]
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-4 h-20 animate-pulse" />
+        ))}
+      </div>
+    )
+  }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-      {tiles.map((tile) => (
-        <div
-          key={tile.label}
-          className="bg-white rounded-xl border border-gray-200 p-3 lg:p-4 flex items-center gap-2 lg:gap-3"
-        >
-          <span className="text-xl lg:text-2xl">{tile.icon}</span>
-          <div className="min-w-0">
-            <p className="text-xs text-gray-500 leading-none mb-1 truncate">{tile.label}</p>
-            <p className="text-lg lg:text-xl font-bold text-gray-900">{tile.value}</p>
-          </div>
-        </div>
-      ))}
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatTile
+        label="Gesamt gefunden"
+        value={(stats?.total ?? 0).toLocaleString('de-DE')}
+        icon={<Home size={28} />}
+        color="border-l-primary"
+      />
+      <StatTile
+        label="Heute neu"
+        value={(stats?.today ?? 0).toString()}
+        icon={<Sparkles size={28} />}
+        color="border-l-accent"
+      />
+      <StatTile
+        label="Letzter Scan"
+        value={timeAgo(stats?.last_scan_at ?? null)}
+        icon={<Clock size={28} />}
+        color="border-l-emerald-500"
+      />
+      <StatTile
+        label="Aktive Portale"
+        value={`${activeSources}/4`}
+        icon={<SearchCheck size={28} />}
+        color="border-l-purple-500"
+      />
     </div>
   )
 }
