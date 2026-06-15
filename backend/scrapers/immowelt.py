@@ -140,6 +140,10 @@ class ImmoweltScraper(BaseScraper):
                             title_el = await item.query_selector("h2, h3")
                             title = (await title_el.inner_text()).strip() if title_el else f"Wohnung in {city}"
 
+                            if self.is_wanted_ad(title):
+                                logger.info(f"[Immowelt] [{city}] Überspringe Gesuch: {title[:60]}")
+                                continue
+
                             price_el = await item.query_selector('[data-testid="cardmfe-price-testid"]')
                             price_text = (await price_el.inner_text()).strip() if price_el else ""
                             price = self.parse_price(price_text) if price_text else None
@@ -148,6 +152,11 @@ class ImmoweltScraper(BaseScraper):
                             keyfacts_text = (await keyfacts_el.inner_text()).strip() if keyfacts_el else ""
                             sqm = self.parse_sqm(keyfacts_text)
                             rooms = self.parse_rooms(keyfacts_text)
+
+                            if rooms is not None and f.min_rooms is not None and f.max_rooms is not None:
+                                if rooms < f.min_rooms or rooms > f.max_rooms:
+                                    logger.info(f"[Immowelt] [{city}] Überspringe {rooms} Zi: {title[:40]}")
+                                    continue
 
                             img_el = await item.query_selector("img")
                             image_url = await img_el.get_attribute("src") if img_el else None

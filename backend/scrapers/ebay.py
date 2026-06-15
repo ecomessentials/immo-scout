@@ -99,6 +99,10 @@ class EbayScraper(BaseScraper):
                 title_el = item.select_one("h2.text-module-begin, h2")
                 title = title_el.get_text(strip=True) if title_el else f"Wohnung in {city}"
 
+                if self.is_wanted_ad(title):
+                    logger.info(f"[eBay] [{city}] Überspringe Gesuch: {title[:60]}")
+                    continue
+
                 link_el = item.select_one("a[href*='/s-anzeige/'], a.ellipsis, h2 a")
                 href = link_el.get("href", "") if link_el else ""
                 listing_url = href if href.startswith("http") else BASE_URL + href
@@ -124,15 +128,26 @@ class EbayScraper(BaseScraper):
 
                 sqm = self.parse_sqm(title + " " + description)
 
-                # Price filter only – no keyword filter
+                rooms_match = re.search(
+                    r"(\d+[\.,]?\d*)\s*(?:zimmer|zi\.?\b|-zimmer)",
+                    title + " " + (description or ""),
+                    re.IGNORECASE,
+                )
+                rooms = float(rooms_match.group(1).replace(",", ".")) if rooms_match else None
+
+                # Filters: price hard, sqm extreme only, rooms if known
                 if price and price > f.max_price:
                     continue
                 if sqm and sqm > 250:
                     continue
+                if rooms is not None and f.min_rooms is not None and f.max_rooms is not None:
+                    if rooms < f.min_rooms or rooms > f.max_rooms:
+                        logger.info(f"[eBay] [{city}] Überspringe {rooms} Zi: {title[:40]}")
+                        continue
 
                 listings.append(Listing(
                     external_id=external_id, source=self.name, title=title,
-                    price=price, sqm=sqm, city=item_city,
+                    price=price, sqm=sqm, rooms=rooms, city=item_city,
                     description=description[:500] if description else None,
                     image_url=image_url, listing_url=listing_url, condition=None,
                 ))

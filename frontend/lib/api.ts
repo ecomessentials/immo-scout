@@ -20,6 +20,8 @@ export async function getListings(params: FilterParams = {}): Promise<Listing[]>
   if (params.max_price != null) query.set('max_price', String(params.max_price))
   if (params.min_sqm != null) query.set('min_sqm', String(params.min_sqm))
   if (params.max_sqm != null) query.set('max_sqm', String(params.max_sqm))
+  if (params.min_rooms != null) query.set('min_rooms', String(params.min_rooms))
+  if (params.max_rooms != null) query.set('max_rooms', String(params.max_rooms))
   if (params.city) query.set('city', params.city)
   if (params.source) query.set('source', params.source)
   if (params.limit != null) query.set('limit', String(params.limit))

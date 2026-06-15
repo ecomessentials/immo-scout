@@ -38,8 +38,10 @@ class SearchFilter(BaseModel):
     max_price: int = 195000
     min_sqm: int = 60
     max_sqm: int = 130
+    min_rooms: Optional[float] = 3.0
+    max_rooms: Optional[float] = 4.0
     cities: list[str] = ["Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen"]
-    keywords: list[str] = ["renovierungsbedürftig", "sanierungsbedürftig", "renovierung", "altbau", "modernisierung"]
+    keywords: list[str] = []
     active: bool = True
     scan_interval: int = 15
 

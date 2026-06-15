@@ -25,8 +25,8 @@ def _format_listing_message(listing: Listing) -> str:
 
     price_str = f"{listing.price:,}".replace(",", ".") + " €" if listing.price else "k.A."
     sqm_str = f"{listing.sqm} m²" if listing.sqm else "k.A."
-    rooms_str = str(listing.rooms) if listing.rooms else "k.A."
     ppm_str = f"{int(price_per_sqm):,}".replace(",", ".") + " €" if price_per_sqm else "k.A."
+    rooms_line = f"🚪 Zimmer: {listing.rooms}\n" if listing.rooms is not None else ""
 
     return (
         f"🏠 *Neue Wohnung gefunden!*\n\n"
@@ -34,9 +34,8 @@ def _format_listing_message(listing: Listing) -> str:
         f"🏙️ Stadt: {listing.city}\n"
         f"💰 Preis: {price_str}\n"
         f"📐 Größe: {sqm_str}\n"
-        f"🚪 Zimmer: {rooms_str}\n"
+        f"{rooms_line}"
         f"💡 €/m²: {ppm_str}\n"
-        f"🔧 Zustand: {listing.condition or 'renovierungsbedürftig'}\n"
         f"🌐 Quelle: {listing.source}\n\n"
         f"🔗 [Zum Inserat]({listing.listing_url})"
     )

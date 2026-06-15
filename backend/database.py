@@ -55,6 +55,8 @@ async def get_listings(
     max_price: Optional[int] = None,
     min_sqm: Optional[float] = None,
     max_sqm: Optional[float] = None,
+    min_rooms: Optional[float] = None,
+    max_rooms: Optional[float] = None,
     city: Optional[str] = None,
     source: Optional[str] = None,
     limit: int = 50,
@@ -72,6 +74,10 @@ async def get_listings(
             query = query.gte("sqm", min_sqm)
         if max_sqm is not None:
             query = query.lte("sqm", max_sqm)
+        if min_rooms is not None:
+            query = query.gte("rooms", min_rooms)
+        if max_rooms is not None:
+            query = query.lte("rooms", max_rooms)
         if city:
             query = query.ilike("city", f"%{city}%")
         if source:

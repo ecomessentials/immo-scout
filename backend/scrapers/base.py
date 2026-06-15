@@ -13,12 +13,27 @@ USER_AGENT = (
 )
 
 
+AUSSCHLUSS_KEYWORDS = [
+    "suche wohnung", "suche eine wohnung", "wohnungssuche",
+    "suche mieter", "suche nachmieter", "suche käufer",
+    "wg-zimmer gesucht", "zimmer gesucht", "nachmieter gesucht",
+    "wir suchen", "ich suche", "familie sucht", "paar sucht",
+    "dringend gesucht", "wohnung gesucht", "auf der suche",
+    "vermieter gesucht", "miete gesucht",
+]
+
+
 class BaseScraper(ABC):
     name: str = "base"
 
     @abstractmethod
     async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
         ...
+
+    def is_wanted_ad(self, title: str) -> bool:
+        """Returns True if the listing is a search/wanted ad (not an offer)."""
+        title_lower = title.lower()
+        return any(kw in title_lower for kw in AUSSCHLUSS_KEYWORDS)
 
     def parse_price(self, text: str) -> int | None:
         if not text:

@@ -14,6 +14,14 @@ const SOURCES = [
   { value: 'immowelt', label: 'Immowelt' },
 ]
 
+const ROOM_OPTS = [
+  { label: 'Alle',   min: '',  max: ''  },
+  { label: '2 Zi',  min: '2', max: '2' },
+  { label: '3 Zi',  min: '3', max: '3' },
+  { label: '4 Zi',  min: '4', max: '4' },
+  { label: '3-4 Zi', min: '3', max: '4' },
+]
+
 interface Props {
   mobileOpen: boolean
   onMobileClose: () => void
@@ -28,12 +36,19 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
   const [maxSqm, setMaxSqm] = useState(Number(searchParams.get('max_sqm') || 200))
   const [selectedCities, setSelectedCities] = useState<string[]>([])
   const [selectedSources, setSelectedSources] = useState<string[]>([])
+  const [roomsKey, setRoomsKey] = useState('3-4 Zi')
 
   useEffect(() => {
     const cityParam = searchParams.get('city')
     const sourceParam = searchParams.get('source')
     setSelectedCities(cityParam ? cityParam.split(',') : [])
     setSelectedSources(sourceParam ? sourceParam.split(',') : [])
+    const minR = searchParams.get('min_rooms')
+    const maxR = searchParams.get('max_rooms')
+    if (minR && maxR) {
+      const match = ROOM_OPTS.find(o => o.min === minR && o.max === maxR)
+      setRoomsKey(match ? match.label : '3-4 Zi')
+    }
   }, [searchParams])
 
   const applyFilters = useCallback(() => {
@@ -41,16 +56,20 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
     if (maxPrice < 195000) params.set('max_price', String(maxPrice))
     if (minSqm > 0) params.set('min_sqm', String(minSqm))
     if (maxSqm < 200) params.set('max_sqm', String(maxSqm))
+    const roomOpt = ROOM_OPTS.find(r => r.label === roomsKey)
+    if (roomOpt?.min) params.set('min_rooms', roomOpt.min)
+    if (roomOpt?.max) params.set('max_rooms', roomOpt.max)
     if (selectedCities.length > 0) params.set('city', selectedCities[0])
     if (selectedSources.length > 0) params.set('source', selectedSources[0])
     router.push(`/?${params.toString()}`)
     onMobileClose()
-  }, [maxPrice, minSqm, maxSqm, selectedCities, selectedSources, router, onMobileClose])
+  }, [maxPrice, minSqm, maxSqm, roomsKey, selectedCities, selectedSources, router, onMobileClose])
 
   const reset = () => {
     setMaxPrice(195000)
     setMinSqm(0)
     setMaxSqm(200)
+    setRoomsKey('3-4 Zi')
     setSelectedCities([])
     setSelectedSources([])
     router.push('/')
@@ -105,6 +124,25 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
         <div className="flex justify-between text-xs text-gray-400 mt-1">
           <span>0 m²</span>
           <span>200 m²</span>
+        </div>
+      </div>
+
+      <div className="mb-5">
+        <p className="text-xs font-medium text-gray-600 mb-2">Zimmer</p>
+        <div className="flex flex-wrap gap-1.5">
+          {ROOM_OPTS.map((opt) => (
+            <button
+              key={opt.label}
+              onClick={() => setRoomsKey(opt.label)}
+              className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-all ${
+                roomsKey === opt.label
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 

@@ -146,6 +146,14 @@ export default function SettingsPage() {
             <Input type="number" value={config.max_sqm} onChange={e => setConfig(c => ({ ...c, max_sqm: Number(e.target.value) }))} />
           </Field>
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <Field label="Mindest-Zimmer">
+            <Input type="number" min={1} max={10} value={config.min_rooms ?? 3} onChange={e => setConfig(c => ({ ...c, min_rooms: Number(e.target.value) }))} />
+          </Field>
+          <Field label="Max-Zimmer">
+            <Input type="number" min={1} max={10} value={config.max_rooms ?? 4} onChange={e => setConfig(c => ({ ...c, max_rooms: Number(e.target.value) }))} />
+          </Field>
+        </div>
 
         <Field label="Keywords">
           <div className="flex flex-wrap gap-2 mb-2 min-h-8">

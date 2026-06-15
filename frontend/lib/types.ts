@@ -28,6 +28,8 @@ export interface SearchFilter {
   max_price: number
   min_sqm: number
   max_sqm: number
+  min_rooms?: number
+  max_rooms?: number
   cities: string[]
   keywords: string[]
   active: boolean
@@ -50,6 +52,8 @@ export interface FilterParams {
   max_price?: number
   min_sqm?: number
   max_sqm?: number
+  min_rooms?: number
+  max_rooms?: number
   city?: string
   source?: string
   limit?: number

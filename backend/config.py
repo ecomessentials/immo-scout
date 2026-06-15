@@ -7,6 +7,8 @@ DEFAULT_FILTER = {
     "max_price": 195000,
     "min_sqm": 30,
     "max_sqm": 250,
+    "min_rooms": 3,
+    "max_rooms": 4,
     "cities": [
         "Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen",
         "Detmold", "Lippstadt", "Soest", "Hamm",

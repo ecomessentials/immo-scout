@@ -18,6 +18,8 @@ function Dashboard() {
     max_price: searchParams.get('max_price') ? Number(searchParams.get('max_price')) : undefined,
     min_sqm: searchParams.get('min_sqm') ? Number(searchParams.get('min_sqm')) : undefined,
     max_sqm: searchParams.get('max_sqm') ? Number(searchParams.get('max_sqm')) : undefined,
+    min_rooms: searchParams.get('min_rooms') ? Number(searchParams.get('min_rooms')) : undefined,
+    max_rooms: searchParams.get('max_rooms') ? Number(searchParams.get('max_rooms')) : undefined,
     city: searchParams.get('city') || undefined,
     source: searchParams.get('source') || undefined,
   }
