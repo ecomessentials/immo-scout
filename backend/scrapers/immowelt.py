@@ -34,11 +34,12 @@ _URL_MAX_PRICE = 195000
 class ImmoweltScraper(BaseScraper):
     name = "immowelt"
 
-    def _build_url(self, city: str, page: int = 1) -> str:
+    def _build_url(self, city: str, page: int = 1, radius: int = 15) -> str:
         slug = self.city_slug(city)
         url = (
             f"{BASE_URL}/suche/{slug}/wohnungen/kaufen"
             f"?pma={_URL_MAX_PRICE}&wflmi={_URL_MIN_SQM}&wflma={_URL_MAX_SQM}"
+            f"&umkreis={radius}"
         )
         if page > 1:
             url += f"&cp={page}"
@@ -60,6 +61,8 @@ class ImmoweltScraper(BaseScraper):
     async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
         listings: list[Listing] = []
         seen_ids: set[str] = set()
+        radius = f.city_radius.get(city, f.default_radius)
+        logger.info(f"[Immowelt] [{city}] Umkreis: {radius} km")
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True, args=LAUNCH_ARGS)
@@ -68,7 +71,7 @@ class ImmoweltScraper(BaseScraper):
             page = await context.new_page()
             try:
                 for page_num in range(1, 6):  # up to 5 pages
-                    url = self._build_url(city, page_num)
+                    url = self._build_url(city, page_num, radius)
                     logger.info(f"[Immowelt] [{city}] Page {page_num}: {url}")
                     await page.goto(url, wait_until="domcontentloaded", timeout=30000)
                     await asyncio.sleep(3)

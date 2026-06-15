@@ -30,9 +30,10 @@ HEADERS = {
 class EbayScraper(BaseScraper):
     name = "ebay"
 
-    def _page_url(self, slug: str, page: int) -> str:
-        # No price filter in URL – filter in code to avoid eBay blocking price-filtered requests
-        base = f"{BASE_URL}/s-wohnung-kaufen/{slug}/k0c196"
+    def _page_url(self, slug: str, page: int, radius: int = 15) -> str:
+        # Radius encoded as {slug}+{radius}km in the path (Kleinanzeigen URL convention)
+        city_part = f"{slug}+{radius}km" if radius > 0 else slug
+        base = f"{BASE_URL}/s-wohnung-kaufen/{city_part}/k0c196"
         return base if page == 1 else f"{base}?pageNum={page}"
 
     async def _fetch(self, url: str, city: str = "") -> str | None:
@@ -160,11 +161,13 @@ class EbayScraper(BaseScraper):
     async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
         await asyncio.sleep(2)  # polite rate limit
         slug = self.city_slug(city)
+        radius = f.city_radius.get(city, f.default_radius)
+        logger.info(f"[eBay] [{city}] Umkreis: {radius} km")
         listings: list[Listing] = []
         seen_ids: set[str] = set()
 
         for page_num in range(1, 4):  # up to 3 pages
-            url = self._page_url(slug, page_num)
+            url = self._page_url(slug, page_num, radius)
             logger.info(f"[eBay] [{city}] Page {page_num}: {url}")
 
             html = await self._fetch(url, city)

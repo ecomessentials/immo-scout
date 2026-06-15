@@ -146,7 +146,8 @@ async def update_config(f: SearchFilter) -> SearchFilter:
     try:
         db = get_db()
         existing = db.table("search_config").select("id").limit(1).execute()
-        data = f.model_dump()
+        # Only persist fields that exist as columns in the search_config table.
+        data = f.model_dump(exclude={"min_rooms", "max_rooms", "default_radius", "city_radius"})
         data["updated_at"] = datetime.now(timezone.utc).isoformat()
         if existing.data:
             db.table("search_config").update(data).eq("id", existing.data[0]["id"]).execute()

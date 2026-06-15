@@ -41,6 +41,9 @@ class SearchFilter(BaseModel):
     min_rooms: Optional[float] = 3.0
     max_rooms: Optional[float] = 4.0
     cities: list[str] = ["Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen"]
+    # default_radius: km Umkreis für alle Städte; city_radius überschreibt pro Stadt
+    default_radius: int = 15
+    city_radius: dict[str, int] = {"Dortmund": 50, "Gelsenkirchen": 50}
     keywords: list[str] = []
     active: bool = True
     scan_interval: int = 15

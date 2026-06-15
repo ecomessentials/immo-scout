@@ -13,10 +13,17 @@ DEFAULT_FILTER = {
         "Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen",
         "Detmold", "Lippstadt", "Soest", "Hamm",
         "Minden", "Bünde", "Löhne", "Bad Salzuflen", "Lemgo",
-        "Osnabrück", "Münster", "Dortmund", "Hagen", "Iserlohn",
+        "Osnabrück", "Münster", "Dortmund", "Gelsenkirchen", "Hagen", "Iserlohn",
         "Delbrück", "Salzkotten", "Warburg", "Höxter",
         "Büren", "Lichtenau", "Borchen", "Bad Wünnenberg",
     ],
+    # Jede Stadt wird mit default_radius km Umkreis gesucht.
+    # Städte in city_radius überschreiben den Default.
+    "default_radius": 15,
+    "city_radius": {
+        "Dortmund": 50,
+        "Gelsenkirchen": 50,
+    },
     "keywords": [],
     "active": True,
     "scan_interval": 180,

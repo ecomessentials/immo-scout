@@ -45,7 +45,9 @@ async def run_all_scrapers(progress_queue: asyncio.Queue | None = None) -> None:
     for scraper in scrapers:
         label = _LABELS.get(scraper.name, scraper.name)
         for city in config.cities:
-            await _emit(progress_queue, "info", f"Durchsuche {label} – {city}...")
+            radius = config.city_radius.get(city, config.default_radius)
+            radius_str = f" ({radius}km Umkreis)" if radius > 0 else ""
+            await _emit(progress_queue, "info", f"Durchsuche {label} – {city}{radius_str}...")
             try:
                 results = await scraper.scrape(city, config)
                 all_listings.extend(results)
