@@ -1,3 +1,5 @@
+import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -150,6 +152,44 @@ async def api_telegram_test():
     if success:
         return {"status": "ok", "message": "Test message sent"}
     raise HTTPException(status_code=500, detail="Failed to send Telegram message – check credentials")
+
+
+@app.get("/api/scan/stream")
+async def api_scan_stream():
+    """SSE endpoint: starts a scan and streams user-friendly progress events."""
+    queue: asyncio.Queue = asyncio.Queue()
+
+    async def event_stream():
+        task = asyncio.create_task(run_all_scrapers(progress_queue=queue))
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=600.0)
+                    yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+                    if event.get("status") == "done":
+                        break
+                except asyncio.TimeoutError:
+                    yield f"data: {json.dumps({'status': 'done', 'message': ''})}\n\n"
+                    break
+        except (asyncio.CancelledError, GeneratorExit):
+            pass
+        finally:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except (asyncio.CancelledError, Exception):
+                    pass
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @app.get("/api/logs/stream")
