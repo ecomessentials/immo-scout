@@ -72,20 +72,11 @@ async def send_listing_notification(listing: Listing) -> None:
         logger.error(f"send_message failed for {listing.external_id}: {e}")
 
 
-async def send_startup_message(interval: int = 15, cities: list[str] | None = None,
-                               max_price: int = 195000, min_sqm: int = 60, max_sqm: int = 130) -> None:
+async def send_startup_message() -> None:
     bot = _get_bot()
     if not bot:
         return
-
-    cities_str = ", ".join(cities) if cities else "Paderborn, Gütersloh, Bielefeld, ..."
-    text = (
-        f"🤖 Immo Scout gestartet!\n"
-        f"✅ Suche aktiv – alle {interval} Minuten\n"
-        f"📍 Städte: {cities_str}\n"
-        f"💰 Max. Preis: {max_price:,} €\n"
-        f"📐 Größe: {min_sqm}–{max_sqm} m²"
-    )
+    text = "🏠 ImmobilienKrieger gestartet! Nächster Scan in 3 Stunden."
     try:
         await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=text)
     except TelegramError as e:

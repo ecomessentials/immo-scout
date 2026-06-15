@@ -19,7 +19,7 @@ DEFAULT_FILTER = {
     ],
     "keywords": [],
     "active": True,
-    "scan_interval": 300,
+    "scan_interval": 180,
 }
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")

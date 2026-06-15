@@ -130,6 +130,8 @@ async def get_config() -> SearchFilter:
                 max_price=row.get("max_price", DEFAULT_FILTER["max_price"]),
                 min_sqm=row.get("min_sqm", DEFAULT_FILTER["min_sqm"]),
                 max_sqm=row.get("max_sqm", DEFAULT_FILTER["max_sqm"]),
+                min_rooms=row.get("min_rooms", DEFAULT_FILTER.get("min_rooms", 3)),
+                max_rooms=row.get("max_rooms", DEFAULT_FILTER.get("max_rooms", 4)),
                 cities=row.get("cities", DEFAULT_FILTER["cities"]),
                 keywords=row.get("keywords", DEFAULT_FILTER["keywords"]),
                 active=row.get("active", DEFAULT_FILTER["active"]),

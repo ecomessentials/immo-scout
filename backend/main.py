@@ -38,27 +38,24 @@ async def lifespan(app: FastAPI):
             "min_sqm": DEFAULT_FILTER["min_sqm"],
             "max_sqm": DEFAULT_FILTER["max_sqm"],
         }).neq("id", "").execute()
-        logger.info(f"search_config synced: {len(DEFAULT_FILTER['cities'])} cities, sqm {DEFAULT_FILTER['min_sqm']}–{DEFAULT_FILTER['max_sqm']}")
+        logger.info(f"search_config synced: {len(DEFAULT_FILTER['cities'])} cities, interval={DEFAULT_FILTER['scan_interval']}min")
     except Exception as e:
         logger.warning(f"Could not sync search_config to Supabase: {e}")
 
-    config = await get_config()
-    scheduler.add_job(
-        run_all_scrapers,
-        "interval",
-        hours=5,
-        id="scrape_job",
-        replace_existing=True,
-    )
-    scheduler.start()
-    logger.info("Scheduler started, interval: 5 hours")
-    await send_startup_message(
-        interval=config.scan_interval,
-        cities=config.cities,
-        max_price=config.max_price,
-        min_sqm=config.min_sqm,
-        max_sqm=config.max_sqm,
-    )
+    try:
+        scheduler.add_job(
+            run_all_scrapers,
+            "interval",
+            hours=3,
+            id="scrape_job",
+            replace_existing=True,
+        )
+        scheduler.start()
+        logger.info("Scheduler started, interval: 3 hours")
+    except Exception as e:
+        logger.error(f"Scheduler failed to start: {e}")
+
+    await send_startup_message()
     yield
     scheduler.shutdown()
     logger.info("Scheduler stopped")
@@ -147,8 +144,8 @@ async def api_get_config():
 async def api_update_config(f: SearchFilter):
     updated = await update_config(f)
     if scheduler.running:
-        scheduler.reschedule_job("scrape_job", trigger="interval", hours=5)
-        logger.info("Rescheduled job to 5 hours interval")
+        scheduler.reschedule_job("scrape_job", trigger="interval", hours=3)
+        logger.info("Rescheduled job to 3 hours interval")
     return updated
 
 

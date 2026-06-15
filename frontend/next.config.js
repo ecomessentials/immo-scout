@@ -2,10 +2,9 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: '**.immobilienscout24.de' },
       { protocol: 'https', hostname: '**.ebayimg.com' },
+      { protocol: 'https', hostname: '**.kleinanzeigen.de' },
       { protocol: 'https', hostname: '**.immowelt.de' },
-      { protocol: 'https', hostname: '**.immonet.de' },
     ],
   },
 }
