@@ -7,7 +7,11 @@ DEFAULT_FILTER = {
     "max_price": 195000,
     "min_sqm": 60,
     "max_sqm": 130,
-    "cities": ["Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen"],
+    "cities": [
+        "Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen",
+        "Detmold", "Lippstadt", "Soest", "Hamm", "Münster", "Osnabrück",
+        "Minden", "Bünde", "Löhne", "Salzuflen", "Lemgo",
+    ],
     "keywords": ["renovierungsbedürftig", "sanierungsbedürftig", "renovierung", "altbau", "modernisierung"],
     "active": True,
     "scan_interval": 300,

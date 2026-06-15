@@ -27,12 +27,16 @@ scheduler = AsyncIOScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Sync scan_interval to 300 in Supabase so the DB and code stay consistent.
+    # Sync config defaults to Supabase so DB and code always stay consistent.
     try:
-        get_db().table("search_config").update({"scan_interval": 300}).neq("id", "").execute()
-        logger.info("search_config: scan_interval set to 300")
+        from config import DEFAULT_FILTER
+        get_db().table("search_config").update({
+            "scan_interval": DEFAULT_FILTER["scan_interval"],
+            "cities": DEFAULT_FILTER["cities"],
+        }).neq("id", "").execute()
+        logger.info(f"search_config synced: scan_interval={DEFAULT_FILTER['scan_interval']}, {len(DEFAULT_FILTER['cities'])} cities")
     except Exception as e:
-        logger.warning(f"Could not update scan_interval in Supabase: {e}")
+        logger.warning(f"Could not sync search_config to Supabase: {e}")
 
     config = await get_config()
     scheduler.add_job(
