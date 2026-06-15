@@ -43,16 +43,16 @@ export default function StatsBar({ stats, loading }: Props) {
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       {tiles.map((tile) => (
         <div
           key={tile.label}
-          className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3"
+          className="bg-white rounded-xl border border-gray-200 p-3 lg:p-4 flex items-center gap-2 lg:gap-3"
         >
-          <span className="text-2xl">{tile.icon}</span>
-          <div>
-            <p className="text-xs text-gray-500 leading-none mb-1">{tile.label}</p>
-            <p className="text-xl font-bold text-gray-900">{tile.value}</p>
+          <span className="text-xl lg:text-2xl">{tile.icon}</span>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500 leading-none mb-1 truncate">{tile.label}</p>
+            <p className="text-lg lg:text-xl font-bold text-gray-900">{tile.value}</p>
           </div>
         </div>
       ))}

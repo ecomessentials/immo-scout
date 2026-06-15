@@ -3,7 +3,12 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useState, useEffect } from 'react'
 
-const CITIES = ['Paderborn', 'Gütersloh', 'Bielefeld', 'Herford', 'Rheda-Wiedenbrück', 'Bad Oeynhausen']
+const CITIES = [
+  'Paderborn', 'Gütersloh', 'Bielefeld', 'Herford', 'Rheda-Wiedenbrück', 'Bad Oeynhausen',
+  'Detmold', 'Lippstadt', 'Soest', 'Hamm', 'Münster', 'Osnabrück',
+  'Minden', 'Bünde', 'Löhne', 'Salzuflen', 'Lemgo',
+]
+
 const SOURCES = [
   { value: 'immoscout24', label: 'ImmoScout24' },
   { value: 'ebay', label: 'eBay Kleinanz.' },
@@ -11,7 +16,12 @@ const SOURCES = [
   { value: 'immonet', label: 'Immonet' },
 ]
 
-export default function FilterSidebar() {
+interface Props {
+  mobileOpen: boolean
+  onMobileClose: () => void
+}
+
+export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -36,7 +46,8 @@ export default function FilterSidebar() {
     if (selectedCities.length > 0) params.set('city', selectedCities[0])
     if (selectedSources.length > 0) params.set('source', selectedSources[0])
     router.push(`/?${params.toString()}`)
-  }, [maxPrice, minSqm, maxSqm, selectedCities, selectedSources, router])
+    onMobileClose()
+  }, [maxPrice, minSqm, maxSqm, selectedCities, selectedSources, router, onMobileClose])
 
   const reset = () => {
     setMaxPrice(195000)
@@ -45,24 +56,21 @@ export default function FilterSidebar() {
     setSelectedCities([])
     setSelectedSources([])
     router.push('/')
+    onMobileClose()
   }
 
-  const toggleCity = (city: string) => {
+  const toggleCity = (city: string) =>
     setSelectedCities((prev) =>
       prev.includes(city) ? prev.filter((c) => c !== city) : [...prev, city]
     )
-  }
 
-  const toggleSource = (source: string) => {
+  const toggleSource = (source: string) =>
     setSelectedSources((prev) =>
       prev.includes(source) ? prev.filter((s) => s !== source) : [...prev, source]
     )
-  }
 
-  return (
-    <aside className="w-full lg:w-64 shrink-0 bg-white border border-gray-200 rounded-xl p-5 lg:sticky lg:top-6 self-start">
-      <h2 className="font-semibold text-gray-900 mb-4">Filter</h2>
-
+  const filterBody = (
+    <>
       <div className="mb-5">
         <label className="text-xs font-medium text-gray-600 mb-1 block">
           Max. Preis: {new Intl.NumberFormat('de-DE').format(maxPrice)} €
@@ -87,20 +95,12 @@ export default function FilterSidebar() {
           Wohnfläche: {minSqm} – {maxSqm} m²
         </label>
         <input
-          type="range"
-          min={0}
-          max={200}
-          step={5}
-          value={minSqm}
+          type="range" min={0} max={200} step={5} value={minSqm}
           onChange={(e) => setMinSqm(Math.min(Number(e.target.value), maxSqm - 5))}
           className="w-full accent-blue-600 mb-1"
         />
         <input
-          type="range"
-          min={0}
-          max={200}
-          step={5}
-          value={maxSqm}
+          type="range" min={0} max={200} step={5} value={maxSqm}
           onChange={(e) => setMaxSqm(Math.max(Number(e.target.value), minSqm + 5))}
           className="w-full accent-blue-600"
         />
@@ -112,17 +112,19 @@ export default function FilterSidebar() {
 
       <div className="mb-5">
         <p className="text-xs font-medium text-gray-600 mb-2">Städte</p>
-        {CITIES.map((city) => (
-          <label key={city} className="flex items-center gap-2 text-sm text-gray-700 mb-1 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={selectedCities.includes(city)}
-              onChange={() => toggleCity(city)}
-              className="accent-blue-600"
-            />
-            {city}
-          </label>
-        ))}
+        <div className="max-h-48 overflow-y-auto pr-1 space-y-1">
+          {CITIES.map((city) => (
+            <label key={city} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedCities.includes(city)}
+                onChange={() => toggleCity(city)}
+                className="accent-blue-600"
+              />
+              {city}
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="mb-6">
@@ -154,6 +156,39 @@ export default function FilterSidebar() {
           Zurücksetzen
         </button>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Desktop: sticky sidebar */}
+      <aside className="hidden lg:block w-64 shrink-0 bg-white border border-gray-200 rounded-xl p-5 sticky top-6 self-start">
+        <h2 className="font-semibold text-gray-900 mb-4">Filter</h2>
+        {filterBody}
+      </aside>
+
+      {/* Mobile: slide-in modal */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50" onClick={onMobileClose} />
+          {/* Drawer */}
+          <div className="absolute left-0 top-0 h-full w-80 max-w-[85vw] bg-white shadow-xl flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+              <h2 className="font-semibold text-gray-900">Filter</h2>
+              <button
+                onClick={onMobileClose}
+                className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              {filterBody}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
