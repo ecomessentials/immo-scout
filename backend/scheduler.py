@@ -70,7 +70,13 @@ async def run_all_scrapers(progress_queue: asyncio.Queue | None = None) -> None:
             seen.add(listing.external_id)
             unique.append(listing)
 
+    logger.info(
+        f"Scrape done: {len(all_listings)} gesamt, {len(unique)} dedupliziert "
+        f"({len(all_listings) - len(unique)} Duplikate in dieser Session)"
+    )
+
     new_count = 0
+    duplicate_count = 0
     telegram_sent = 0
     for listing in unique:
         is_new = await save_listing(listing)
@@ -78,6 +84,10 @@ async def run_all_scrapers(progress_queue: asyncio.Queue | None = None) -> None:
             new_count += 1
             await send_listing_notification(listing)
             telegram_sent += 1
+        else:
+            duplicate_count += 1
+
+    logger.info(f"Gespeichert: {new_count} neu, {duplicate_count} bereits in DB")
 
     if new_count > 0:
         await _emit(progress_queue, "ok", f"{_wohnungen(new_count)} neu gespeichert")

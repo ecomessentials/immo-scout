@@ -9,8 +9,8 @@ DEFAULT_FILTER = {
     "max_sqm": 130,
     "cities": [
         "Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen",
-        "Detmold", "Lippstadt", "Soest", "Hamm", "Münster", "Osnabrück",
-        "Minden", "Bünde", "Löhne", "Salzuflen", "Lemgo",
+        "Detmold", "Lippstadt", "Soest", "Hamm",
+        "Minden", "Bünde", "Löhne", "Bad Salzuflen", "Lemgo",
     ],
     "keywords": ["renovierungsbedürftig", "sanierungsbedürftig", "renovierung", "altbau", "modernisierung"],
     "active": True,
