@@ -103,7 +103,7 @@ class ImmonetScraper(BaseScraper):
                     sqm=sqm,
                     city=city,
                     listing_url=listing_url,
-                    condition="renovierungsbedürftig",
+                    condition=None,
                 ))
             except Exception as e:
                 logger.warning(f"[Immonet] [{city}] Soup-Link-Fehler: {e}")
@@ -245,7 +245,7 @@ class ImmonetScraper(BaseScraper):
                                 city=city,
                                 image_url=image_url,
                                 listing_url=listing_url,
-                                condition="renovierungsbedürftig",
+                                condition=None,
                             ))
                             page_new += 1
                         except Exception as e:

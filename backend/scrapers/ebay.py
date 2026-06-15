@@ -31,17 +31,20 @@ class EbayScraper(BaseScraper):
         base = f"{BASE_URL}/s-wohnung-kaufen/{slug}/preis::{max_price}/k0c196"
         return base if page == 1 else f"{base}?pageNum={page}"
 
-    async def _fetch(self, url: str) -> str | None:
+    async def _fetch(self, url: str, city: str = "") -> str | None:
         try:
             async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
                 r = await client.get(url, headers=HEADERS)
-            logger.info(f"[eBay] HTTP {r.status_code} – {url}")
+            logger.info(f"[eBay] [{city}] HTTP {r.status_code} – {url}")
+            logger.info(f"[eBay] [{city}] 'aditem' in HTML: {'aditem' in r.text}")
+            logger.info(f"[eBay] [{city}] 's-anzeige' in HTML: {'s-anzeige' in r.text}")
+            logger.info(f"[eBay] [{city}] HTML-Start: {r.text[:1000]}")
             if r.status_code != 200:
-                logger.warning(f"[eBay] Non-200: {r.text[:300]}")
+                logger.warning(f"[eBay] [{city}] Non-200: {r.text[:300]}")
                 return None
             return r.text
         except Exception as e:
-            logger.error(f"[eBay] HTTP error: {e}")
+            logger.error(f"[eBay] [{city}] HTTP error: {e}")
             return None
 
     def _parse_items(self, html: str, city: str, f: SearchFilter, seen_ids: set[str]) -> list[Listing]:
@@ -73,7 +76,7 @@ class EbayScraper(BaseScraper):
             logger.info(f"[eBay] [{city}] {len(listings)} via Link-Fallback")
             return listings
 
-        logger.info(f"[eBay] [{city}] {len(items)} articles (vor Filter)")
+        html_count = len(items)
         for item in items:
             try:
                 adid = item.get("data-adid") or ""
@@ -117,26 +120,22 @@ class EbayScraper(BaseScraper):
 
                 sqm = self.parse_sqm(title + " " + description)
 
-                # Soft keyword filter – sets condition tag, never excludes
-                combined = f"{title} {description}"
-                condition = "renovierungsbedürftig" if self.matches_keywords(combined, f.keywords) else None
-
-                # Hard price filter only
+                # Price filter only – no keyword filter
                 if price and price > f.max_price:
                     continue
-                # Only filter clearly absurd sizes
-                if sqm and sqm > 200:
+                if sqm and sqm > 250:
                     continue
 
                 listings.append(Listing(
                     external_id=external_id, source=self.name, title=title,
                     price=price, sqm=sqm, city=item_city,
                     description=description[:500] if description else None,
-                    image_url=image_url, listing_url=listing_url, condition=condition,
+                    image_url=image_url, listing_url=listing_url, condition=None,
                 ))
             except Exception as e:
                 logger.warning(f"[eBay] [{city}] Item parse error: {e}")
 
+        logger.info(f"[eBay] [{city}] {html_count} items im HTML gefunden, {len(listings)} nach Preisfilter")
         return listings
 
     async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
@@ -149,7 +148,7 @@ class EbayScraper(BaseScraper):
             url = self._page_url(slug, f.max_price, page_num)
             logger.info(f"[eBay] [{city}] Page {page_num}: {url}")
 
-            html = await self._fetch(url)
+            html = await self._fetch(url, city)
             if not html:
                 break
 

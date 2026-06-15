@@ -150,11 +150,7 @@ class ImmoweltScraper(BaseScraper):
                             img_el = await item.query_selector("img")
                             image_url = await img_el.get_attribute("src") if img_el else None
 
-                            # Set condition based on keywords; save ALL listings regardless
-                            combined = f"{title} {keyfacts_text}"
-                            condition = "renovierungsbedürftig" if self.matches_keywords(combined, f.keywords) else None
-
-                            # Only hard price filter; accept all sqm
+                            # Only hard price filter; accept all sqm, no keyword filter
                             if price and price > _URL_MAX_PRICE:
                                 continue
 
@@ -168,7 +164,7 @@ class ImmoweltScraper(BaseScraper):
                                 city=city,
                                 image_url=image_url,
                                 listing_url=listing_url,
-                                condition=condition,
+                                condition=None,
                             ))
                             page_new += 1
                         except Exception as e:
