@@ -94,10 +94,11 @@ class ImmoweltScraper(BaseScraper):
                                 if not href:
                                     continue
                                 listing_url = href if href.startswith("http") else BASE_URL + href
-                                id_match = re.search(r"/expose/([^/?]+)", href)
+                                id_match = re.search(r"/expose/([a-zA-Z0-9]{8,})", href)
                                 if not id_match:
                                     continue
                                 raw_id = id_match.group(1)
+                                logger.info(f"[Immowelt] ID extrahiert: {raw_id} aus {href}")
                                 external_id = self.build_external_id("iw", raw_id)
                                 if external_id in seen_ids:
                                     continue
@@ -126,10 +127,11 @@ class ImmoweltScraper(BaseScraper):
                                 continue
                             listing_url = href if href.startswith("http") else BASE_URL + href
 
-                            id_match = re.search(r"/expose/([^/?]+)", href)
+                            id_match = re.search(r"/expose/([a-zA-Z0-9]{8,})", href)
                             if not id_match:
-                                id_match = re.search(r"/(\w{6,})", href)
-                            raw_id = id_match.group(1) if id_match else href.split("/")[-1]
+                                continue  # skip items without a clean /expose/ ID
+                            raw_id = id_match.group(1)
+                            logger.info(f"[Immowelt] ID extrahiert: {raw_id} aus {href}")
                             external_id = self.build_external_id("iw", raw_id)
                             if external_id in seen_ids:
                                 continue

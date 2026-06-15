@@ -21,14 +21,18 @@ HEADERS = {
     "Sec-Fetch-Mode": "navigate",
     "Sec-Fetch-Site": "none",
     "Cache-Control": "max-age=0",
+    "Referer": "https://www.google.de/",
+    "DNT": "1",
+    "Sec-GPC": "1",
 }
 
 
 class EbayScraper(BaseScraper):
     name = "ebay"
 
-    def _page_url(self, slug: str, max_price: int, page: int) -> str:
-        base = f"{BASE_URL}/s-wohnung-kaufen/{slug}/preis::{max_price}/k0c196"
+    def _page_url(self, slug: str, page: int) -> str:
+        # No price filter in URL – filter in code to avoid eBay blocking price-filtered requests
+        base = f"{BASE_URL}/s-wohnung-kaufen/{slug}/k0c196"
         return base if page == 1 else f"{base}?pageNum={page}"
 
     async def _fetch(self, url: str, city: str = "") -> str | None:
@@ -145,7 +149,7 @@ class EbayScraper(BaseScraper):
         seen_ids: set[str] = set()
 
         for page_num in range(1, 4):  # up to 3 pages
-            url = self._page_url(slug, f.max_price, page_num)
+            url = self._page_url(slug, page_num)
             logger.info(f"[eBay] [{city}] Page {page_num}: {url}")
 
             html = await self._fetch(url, city)
