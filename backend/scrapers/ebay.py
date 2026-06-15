@@ -27,75 +27,67 @@ HEADERS = {
 class EbayScraper(BaseScraper):
     name = "ebay"
 
-    async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
-        listings: list[Listing] = []
-        await asyncio.sleep(2)  # polite rate limit between cities
+    def _page_url(self, slug: str, max_price: int, page: int) -> str:
+        base = f"{BASE_URL}/s-wohnung-kaufen/{slug}/preis::{max_price}/k0c196"
+        return base if page == 1 else f"{base}?pageNum={page}"
 
-        slug = self.city_slug(city)
-        url = f"{BASE_URL}/s-wohnung-kaufen/{slug}/preis::{f.max_price}/k0c196"
-        logger.info(f"[eBay] [{city}] Fetching: {url}")
-
+    async def _fetch(self, url: str) -> str | None:
         try:
             async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-                response = await client.get(url, headers=HEADERS)
-            logger.info(f"[eBay] [{city}] HTTP {response.status_code}")
-            if response.status_code != 200:
-                logger.warning(f"[eBay] [{city}] Non-200: {response.text[:500]}")
-                return listings
+                r = await client.get(url, headers=HEADERS)
+            logger.info(f"[eBay] HTTP {r.status_code} – {url}")
+            if r.status_code != 200:
+                logger.warning(f"[eBay] Non-200: {r.text[:300]}")
+                return None
+            return r.text
         except Exception as e:
-            logger.error(f"[eBay] [{city}] HTTP error: {e}")
-            return listings
+            logger.error(f"[eBay] HTTP error: {e}")
+            return None
 
-        soup = BeautifulSoup(response.text, "lxml")
+    def _parse_items(self, html: str, city: str, f: SearchFilter, seen_ids: set[str]) -> list[Listing]:
+        soup = BeautifulSoup(html, "lxml")
+        listings: list[Listing] = []
 
-        # Selector cascade
         items = soup.select("article.aditem")
         if not items:
             items = soup.select("div[data-adid]")
 
         if not items:
-            # Fallback: unique ad links
+            # Fallback: unique /s-anzeige/ links
             ad_links = soup.select("a[href*='/s-anzeige/']")
-            seen_fallback: set[str] = set()
             for link in ad_links:
                 href = link.get("href", "")
-                id_match = re.search(r"/(\d+)-", href)
-                if not id_match:
+                m = re.search(r"/(\d+)-", href)
+                if not m:
                     continue
-                raw_id = id_match.group(1)
-                external_id = self.build_external_id("ebay", raw_id)
-                if external_id in seen_fallback:
+                external_id = self.build_external_id("ebay", m.group(1))
+                if external_id in seen_ids:
                     continue
-                seen_fallback.add(external_id)
+                seen_ids.add(external_id)
                 listing_url = href if href.startswith("http") else BASE_URL + href
                 title = link.get_text(strip=True) or f"Wohnung in {city}"
                 listings.append(Listing(
-                    external_id=external_id,
-                    source=self.name,
-                    title=title,
-                    city=city,
-                    listing_url=listing_url,
-                    condition="renovierungsbedürftig",
+                    external_id=external_id, source=self.name, title=title,
+                    city=city, listing_url=listing_url, condition=None,
                 ))
             logger.info(f"[eBay] [{city}] {len(listings)} via Link-Fallback")
-            if not listings:
-                logger.warning(f"[eBay] [{city}] 0 Items. HTML-Snippet: {response.text[:2000]}")
             return listings
 
-        logger.info(f"[eBay] [{city}] {len(items)} articles gefunden (vor Filter)")
-        pre_filter = len(items)
-
+        logger.info(f"[eBay] [{city}] {len(items)} articles (vor Filter)")
         for item in items:
             try:
                 adid = item.get("data-adid") or ""
                 if not adid:
                     link_el = item.select_one("a[href*='/s-anzeige/']")
-                    href = link_el.get("href", "") if link_el else ""
-                    m = re.search(r"/(\d+)-", href)
+                    href_tmp = link_el.get("href", "") if link_el else ""
+                    m = re.search(r"/(\d+)-", href_tmp)
                     adid = m.group(1) if m else ""
                 if not adid:
                     continue
                 external_id = self.build_external_id("ebay", adid)
+                if external_id in seen_ids:
+                    continue
+                seen_ids.add(external_id)
 
                 title_el = item.select_one("h2.text-module-begin, h2")
                 title = title_el.get_text(strip=True) if title_el else f"Wohnung in {city}"
@@ -125,28 +117,54 @@ class EbayScraper(BaseScraper):
 
                 sqm = self.parse_sqm(title + " " + description)
 
+                # Soft keyword filter – sets condition tag, never excludes
                 combined = f"{title} {description}"
-                if not self.matches_keywords(combined, f.keywords):
-                    continue
+                condition = "renovierungsbedürftig" if self.matches_keywords(combined, f.keywords) else None
+
+                # Hard price filter only
                 if price and price > f.max_price:
                     continue
-                if sqm and (sqm < f.min_sqm or sqm > f.max_sqm):
+                # Only filter clearly absurd sizes
+                if sqm and sqm > 200:
                     continue
 
                 listings.append(Listing(
-                    external_id=external_id,
-                    source=self.name,
-                    title=title,
-                    price=price,
-                    sqm=sqm,
-                    city=item_city,
+                    external_id=external_id, source=self.name, title=title,
+                    price=price, sqm=sqm, city=item_city,
                     description=description[:500] if description else None,
-                    image_url=image_url,
-                    listing_url=listing_url,
-                    condition="renovierungsbedürftig",
+                    image_url=image_url, listing_url=listing_url, condition=condition,
                 ))
             except Exception as e:
                 logger.warning(f"[eBay] [{city}] Item parse error: {e}")
 
-        logger.info(f"[eBay] [{city}] {pre_filter} gefunden → {len(listings)} nach Filter")
+        return listings
+
+    async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
+        await asyncio.sleep(2)  # polite rate limit
+        slug = self.city_slug(city)
+        listings: list[Listing] = []
+        seen_ids: set[str] = set()
+
+        for page_num in range(1, 4):  # up to 3 pages
+            url = self._page_url(slug, f.max_price, page_num)
+            logger.info(f"[eBay] [{city}] Page {page_num}: {url}")
+
+            html = await self._fetch(url)
+            if not html:
+                break
+
+            page_listings = self._parse_items(html, city, f, seen_ids)
+            listings.extend(page_listings)
+
+            if not page_listings:
+                logger.info(f"[eBay] [{city}] Page {page_num}: 0 Items – stoppe Pagination")
+                if page_num == 1:
+                    logger.warning(f"[eBay] [{city}] 0 Items auf Seite 1. HTML-Snippet: {html[:2000]}")
+                break
+
+            logger.info(f"[eBay] [{city}] Page {page_num}: {len(page_listings)} Items")
+            if page_num < 3:
+                await asyncio.sleep(2)
+
+        logger.info(f"[eBay] [{city}] Gesamt: {len(listings)} Listings")
         return listings

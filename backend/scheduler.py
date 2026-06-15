@@ -40,6 +40,8 @@ async def run_all_scrapers(progress_queue: asyncio.Queue | None = None) -> None:
     scrapers = [EbayScraper(), ImmoweltScraper(), ImmonetScraper()]
     all_listings = []
     errors = []
+    # Track found count per scraper for the summary log
+    scraper_found: dict[str, int] = {s.name: 0 for s in scrapers}
 
     for scraper in scrapers:
         label = _LABELS.get(scraper.name, scraper.name)
@@ -48,6 +50,7 @@ async def run_all_scrapers(progress_queue: asyncio.Queue | None = None) -> None:
             try:
                 results = await scraper.scrape(city, config)
                 all_listings.extend(results)
+                scraper_found[scraper.name] += len(results)
                 n = len(results)
                 if n > 0:
                     await _emit(progress_queue, "ok", f"{label} {city}: {_wohnungen(n)} gefunden")
@@ -77,16 +80,29 @@ async def run_all_scrapers(progress_queue: asyncio.Queue | None = None) -> None:
     new_count = 0
     duplicate_count = 0
     telegram_sent = 0
+    # Per-scraper DB stats
+    scraper_new: dict[str, int] = {s.name: 0 for s in scrapers}
+    scraper_dup: dict[str, int] = {s.name: 0 for s in scrapers}
+
     for listing in unique:
         is_new = await save_listing(listing)
         if is_new:
             new_count += 1
+            scraper_new[listing.source] = scraper_new.get(listing.source, 0) + 1
             await send_listing_notification(listing)
             telegram_sent += 1
         else:
             duplicate_count += 1
+            scraper_dup[listing.source] = scraper_dup.get(listing.source, 0) + 1
 
     logger.info(f"Gespeichert: {new_count} neu, {duplicate_count} bereits in DB")
+    for scraper in scrapers:
+        label = _LABELS.get(scraper.name, scraper.name)
+        logger.info(
+            f"[GESAMT] {label}: {scraper_found[scraper.name]} gefunden, "
+            f"{scraper_new.get(scraper.name, 0)} neu gespeichert, "
+            f"{scraper_dup.get(scraper.name, 0)} Duplikate"
+        )
 
     if new_count > 0:
         await _emit(progress_queue, "ok", f"{_wohnungen(new_count)} neu gespeichert")

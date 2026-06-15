@@ -35,8 +35,10 @@ async def lifespan(app: FastAPI):
         get_db().table("search_config").update({
             "scan_interval": DEFAULT_FILTER["scan_interval"],
             "cities": DEFAULT_FILTER["cities"],
+            "min_sqm": DEFAULT_FILTER["min_sqm"],
+            "max_sqm": DEFAULT_FILTER["max_sqm"],
         }).neq("id", "").execute()
-        logger.info(f"search_config synced: scan_interval={DEFAULT_FILTER['scan_interval']}, {len(DEFAULT_FILTER['cities'])} cities")
+        logger.info(f"search_config synced: {len(DEFAULT_FILTER['cities'])} cities, sqm {DEFAULT_FILTER['min_sqm']}–{DEFAULT_FILTER['max_sqm']}")
     except Exception as e:
         logger.warning(f"Could not sync search_config to Supabase: {e}")
 

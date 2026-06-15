@@ -5,12 +5,15 @@ load_dotenv()
 
 DEFAULT_FILTER = {
     "max_price": 195000,
-    "min_sqm": 60,
-    "max_sqm": 130,
+    "min_sqm": 40,
+    "max_sqm": 200,
     "cities": [
         "Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen",
         "Detmold", "Lippstadt", "Soest", "Hamm",
         "Minden", "Bünde", "Löhne", "Bad Salzuflen", "Lemgo",
+        "Osnabrück", "Münster", "Dortmund", "Hagen", "Iserlohn",
+        "Delbrück", "Salzkotten", "Warburg", "Höxter",
+        "Büren", "Lichtenau", "Borchen", "Bad Wünnenberg",
     ],
     "keywords": ["renovierungsbedürftig", "sanierungsbedürftig", "renovierung", "altbau", "modernisierung"],
     "active": True,

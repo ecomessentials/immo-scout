@@ -3,6 +3,8 @@ import logging
 import re
 from urllib.parse import quote
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
+import httpx
+from bs4 import BeautifulSoup
 from models import Listing, SearchFilter
 from .base import BaseScraper
 
@@ -26,7 +28,19 @@ CONTEXT_OPTIONS = {
 }
 HIDE_WEBDRIVER = "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
 
-# Selector cascade to try in order
+HTTPX_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "de-DE,de;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Cache-Control": "max-age=0",
+}
+
 _SELECTORS = [
     "div[id^='selObject']",
     "div.result-list-entry",
@@ -38,19 +52,92 @@ _SELECTORS = [
 class ImmonetScraper(BaseScraper):
     name = "immonet"
 
-    def _build_url(self, city: str, f: SearchFilter) -> str:
+    def _build_url(self, city: str, f: SearchFilter, page: int = 1) -> str:
         city_encoded = quote(city)
         return (
             f"{BASE_URL}/immobiliensuche/sel.do"
-            f"?objecttype=1&listsize=26&sortby=19&suchart=1"
-            f"&city={city_encoded}&region=DE-NW"
+            f"?suchart=1&objecttype=1&listsize=27&sortby=19"
+            f"&city={city_encoded}"
             f"&pricemax={f.max_price}&areamin={f.min_sqm}&areamax={f.max_sqm}"
+            f"&page={page}"
         )
+
+    def _parse_expose_links_from_soup(self, soup: BeautifulSoup, city: str,
+                                       f: SearchFilter, seen_ids: set[str]) -> list[Listing]:
+        """Extract listings from BeautifulSoup expose links (httpx fallback)."""
+        listings: list[Listing] = []
+        expose_links = soup.select("a[href*='/expose/']")
+        logger.info(f"[Immonet] [{city}] httpx-Fallback: {len(expose_links)} Expose-Links")
+
+        for link in expose_links:
+            try:
+                href = link.get("href", "")
+                if not href:
+                    continue
+                id_match = re.search(r"/expose/(?:view/)?(\d+)", href)
+                if not id_match:
+                    continue
+                raw_id = id_match.group(1)
+                external_id = self.build_external_id("inet", raw_id)
+                if external_id in seen_ids:
+                    continue
+                seen_ids.add(external_id)
+
+                listing_url = href if href.startswith("http") else BASE_URL + href
+                title = link.get_text(strip=True) or f"Wohnung in {city}"
+
+                # Try parent element for price/sqm
+                parent = link.find_parent(["div", "li", "td", "tr", "article"])
+                parent_text = parent.get_text(separator=" ", strip=True) if parent else ""
+                price = self.parse_price(parent_text) if "€" in parent_text else None
+                sqm = self.parse_sqm(parent_text)
+
+                if price and price > f.max_price:
+                    continue
+
+                listings.append(Listing(
+                    external_id=external_id,
+                    source=self.name,
+                    title=title,
+                    price=price,
+                    sqm=sqm,
+                    city=city,
+                    listing_url=listing_url,
+                    condition="renovierungsbedürftig",
+                ))
+            except Exception as e:
+                logger.warning(f"[Immonet] [{city}] Soup-Link-Fehler: {e}")
+
+        return listings
+
+    async def _httpx_fallback(self, city: str, f: SearchFilter,
+                               seen_ids: set[str]) -> list[Listing]:
+        """Try fetching via httpx + BeautifulSoup when Playwright finds nothing."""
+        listings: list[Listing] = []
+        for page in range(1, 4):
+            url = self._build_url(city, f, page)
+            logger.info(f"[Immonet] [{city}] httpx page {page}: {url}")
+            try:
+                async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+                    r = await client.get(url, headers=HTTPX_HEADERS)
+                if r.status_code != 200:
+                    logger.warning(f"[Immonet] [{city}] httpx non-200: {r.status_code}")
+                    break
+                soup = BeautifulSoup(r.content, "lxml")
+                page_listings = self._parse_expose_links_from_soup(soup, city, f, seen_ids)
+                listings.extend(page_listings)
+                if not page_listings:
+                    break
+                await asyncio.sleep(1)
+            except Exception as e:
+                logger.error(f"[Immonet] [{city}] httpx error: {e}")
+                break
+        return listings
 
     async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
         listings: list[Listing] = []
-        url = self._build_url(city, f)
-        logger.info(f"[Immonet] [{city}] Loading: {url}")
+        seen_ids: set[str] = set()
+        playwright_found_any = False
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True, args=LAUNCH_ARGS)
@@ -58,153 +145,127 @@ class ImmonetScraper(BaseScraper):
             await context.add_init_script(HIDE_WEBDRIVER)
             page = await context.new_page()
             try:
-                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                await asyncio.sleep(5)
+                for page_num in range(1, 4):  # up to 3 pages
+                    url = self._build_url(city, f, page_num)
+                    logger.info(f"[Immonet] [{city}] Playwright page {page_num}: {url}")
+                    await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    await asyncio.sleep(5)
 
-                # Cookie / consent banner
-                try:
-                    accept = await page.query_selector(
-                        'button[id*="accept"], button[class*="accept"], '
-                        '#onetrust-accept-btn-handler, button[title*="Akzeptieren"]'
-                    )
-                    if accept:
-                        await accept.click()
-                        await asyncio.sleep(1)
-                except Exception:
-                    pass
+                    if page_num == 1:
+                        try:
+                            accept = await page.query_selector(
+                                'button[id*="accept"], button[class*="accept"], '
+                                '#onetrust-accept-btn-handler, button[title*="Akzeptieren"]'
+                            )
+                            if accept:
+                                await accept.click()
+                                await asyncio.sleep(1)
+                        except Exception:
+                            pass
 
-                # Capture full HTML for debug logging
-                html = await page.content()
+                    html = await page.content()
 
-                # Try selector cascade
-                items = []
-                used_selector = ""
-                for sel in _SELECTORS:
-                    items = await page.query_selector_all(sel)
-                    if items:
-                        used_selector = sel
+                    # Selector cascade
+                    items = []
+                    used_selector = ""
+                    for sel in _SELECTORS:
+                        items = await page.query_selector_all(sel)
+                        if items:
+                            used_selector = sel
+                            break
+
+                    if not items:
+                        logger.warning(f"[Immonet] [{city}] Page {page_num}: alle Selektoren leer")
+                        if page_num == 1:
+                            logger.debug(f"[Immonet] [{city}] HTML (3000 Zeichen): {html[:3000]}")
                         break
 
-                if items:
-                    logger.info(f"[Immonet] [{city}] {len(items)} items via '{used_selector}'")
-                else:
-                    logger.warning(f"[Immonet] [{city}] Alle Selektoren leer – versuche Expose-Links")
-                    logger.debug(f"[Immonet] [{city}] HTML (3000 Zeichen): {html[:3000]}")
+                    logger.info(f"[Immonet] [{city}] Page {page_num}: {len(items)} items via '{used_selector}'")
+                    playwright_found_any = True
+                    page_new = 0
 
-                    # Fallback: alle /expose/ Links
-                    expose_links = await page.query_selector_all("a[href*='/expose/']")
-                    logger.info(f"[Immonet] [{city}] {len(expose_links)} Expose-Links gefunden")
-                    seen_ids: set[str] = set()
-                    for link_el in expose_links:
+                    for item in items:
                         try:
-                            href = await link_el.get_attribute("href") or ""
-                            if not href:
+                            # ID extraction
+                            item_id = await item.get_attribute("data-item-id") or ""
+                            if not item_id:
+                                id_attr = await item.get_attribute("id") or ""
+                                m = re.search(r"(\d+)", id_attr)
+                                item_id = m.group(1) if m else ""
+                            if not item_id:
+                                link_el = await item.query_selector("a[href*='/expose/']")
+                                if link_el:
+                                    href = await link_el.get_attribute("href") or ""
+                                    m = re.search(r"/expose/(?:view/)?(\d+)", href)
+                                    item_id = m.group(1) if m else ""
+                            if not item_id:
                                 continue
-                            listing_url = href if href.startswith("http") else BASE_URL + href
-                            id_match = re.search(r"/expose/(?:view/)?(\d+)", href)
-                            if not id_match:
-                                continue
-                            raw_id = id_match.group(1)
-                            external_id = self.build_external_id("inet", raw_id)
+
+                            external_id = self.build_external_id("inet", item_id)
                             if external_id in seen_ids:
                                 continue
                             seen_ids.add(external_id)
-                            title_text = (await link_el.inner_text()).strip()
-                            # Try to grab surrounding text for price/sqm
-                            parent_text = await link_el.evaluate(
-                                "el => el.closest('div,li,td,tr') ? el.closest('div,li,td,tr').innerText : ''"
+
+                            link_el = await item.query_selector("a[href*='/expose/'], a[href]")
+                            href = await link_el.get_attribute("href") if link_el else ""
+                            if not href:
+                                href = f"/expose/view/{item_id}"
+                            listing_url = href if href.startswith("http") else BASE_URL + href
+
+                            title_el = await item.query_selector(
+                                ".result-list-entry__realty-title, h3, h2"
                             )
-                            price = self.parse_price(parent_text) if "€" in parent_text else None
-                            sqm = self.parse_sqm(parent_text)
+                            title = (await title_el.inner_text()).strip() if title_el else f"Wohnung in {city}"
+
+                            price = None
+                            sqm = None
+                            criteria_els = await item.query_selector_all(
+                                ".result-list-entry__primary-criterion, "
+                                ".criteria-group span, .resultlist-attributes span, td, .advert-price"
+                            )
+                            for el in criteria_els:
+                                text = (await el.inner_text()).strip()
+                                if "€" in text and price is None:
+                                    price = self.parse_price(text)
+                                if ("m²" in text or "m2" in text.lower()) and sqm is None:
+                                    sqm = self.parse_sqm(text)
+
+                            img_el = await item.query_selector("img")
+                            image_url = await img_el.get_attribute("src") if img_el else None
+
+                            if price and price > f.max_price:
+                                continue
+
                             listings.append(Listing(
                                 external_id=external_id,
                                 source=self.name,
-                                title=title_text or f"Wohnung in {city}",
+                                title=title,
                                 price=price,
                                 sqm=sqm,
                                 city=city,
+                                image_url=image_url,
                                 listing_url=listing_url,
                                 condition="renovierungsbedürftig",
                             ))
+                            page_new += 1
                         except Exception as e:
-                            logger.warning(f"[Immonet] [{city}] Expose-Link-Fehler: {e}")
-                    logger.info(f"[Immonet] [{city}] {len(listings)} via Expose-Link-Fallback")
-                    return listings
+                            logger.warning(f"[Immonet] [{city}] Item-Fehler: {e}")
 
-                # Parse items from matched selector
-                for item in items:
-                    try:
-                        # ID extraction
-                        item_id = await item.get_attribute("data-item-id") or ""
-                        if not item_id:
-                            id_attr = await item.get_attribute("id") or ""
-                            m = re.search(r"(\d+)", id_attr)
-                            item_id = m.group(1) if m else ""
-                        if not item_id:
-                            # try to find from expose link within item
-                            link_el = await item.query_selector("a[href*='/expose/']")
-                            if link_el:
-                                href = await link_el.get_attribute("href") or ""
-                                m = re.search(r"/expose/(?:view/)?(\d+)", href)
-                                item_id = m.group(1) if m else ""
-                        if not item_id:
-                            continue
-                        external_id = self.build_external_id("inet", item_id)
-
-                        # URL
-                        link_el = await item.query_selector("a[href*='/expose/'], a[href]")
-                        href = await link_el.get_attribute("href") if link_el else ""
-                        if not href:
-                            href = f"/expose/view/{item_id}"
-                        listing_url = href if href.startswith("http") else BASE_URL + href
-
-                        # Title
-                        title_el = await item.query_selector(
-                            ".result-list-entry__realty-title, h3, h2"
-                        )
-                        title = (await title_el.inner_text()).strip() if title_el else f"Wohnung in {city}"
-
-                        # Price and sqm from criteria elements
-                        price = None
-                        sqm = None
-                        criteria_els = await item.query_selector_all(
-                            ".result-list-entry__primary-criterion, "
-                            ".criteria-group span, .resultlist-attributes span, td, .advert-price"
-                        )
-                        for el in criteria_els:
-                            text = (await el.inner_text()).strip()
-                            if "€" in text and price is None:
-                                price = self.parse_price(text)
-                            if ("m²" in text or "m2" in text.lower()) and sqm is None:
-                                sqm = self.parse_sqm(text)
-
-                        img_el = await item.query_selector("img")
-                        image_url = await img_el.get_attribute("src") if img_el else None
-
-                        if price and price > f.max_price:
-                            continue
-                        if sqm and (sqm < f.min_sqm or sqm > f.max_sqm):
-                            continue
-
-                        listings.append(Listing(
-                            external_id=external_id,
-                            source=self.name,
-                            title=title,
-                            price=price,
-                            sqm=sqm,
-                            city=city,
-                            image_url=image_url,
-                            listing_url=listing_url,
-                            condition="renovierungsbedürftig",
-                        ))
-                    except Exception as e:
-                        logger.warning(f"[Immonet] [{city}] Item-Fehler: {e}")
-
-                logger.info(f"[Immonet] [{city}] {len(listings)} Listings nach Filter")
+                    logger.info(f"[Immonet] [{city}] Page {page_num}: {page_new} neue Listings")
+                    if page_new == 0:
+                        break
+                    await asyncio.sleep(2)
 
             except Exception as e:
                 logger.error(f"[Immonet] [{city}] Scrape error: {e}")
             finally:
                 await browser.close()
 
+        # httpx fallback when Playwright found nothing at all
+        if not playwright_found_any:
+            logger.info(f"[Immonet] [{city}] Versuche httpx-Fallback")
+            fallback = await self._httpx_fallback(city, f, seen_ids)
+            listings.extend(fallback)
+
+        logger.info(f"[Immonet] [{city}] Gesamt: {len(listings)} Listings")
         return listings
