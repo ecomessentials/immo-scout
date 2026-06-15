@@ -39,14 +39,25 @@ CREATE TABLE IF NOT EXISTS scan_logs (
 CREATE TABLE IF NOT EXISTS search_config (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   max_price       INTEGER DEFAULT 195000,
-  min_sqm         INTEGER DEFAULT 60,
-  max_sqm         INTEGER DEFAULT 130,
+  min_sqm         INTEGER DEFAULT 30,
+  max_sqm         INTEGER DEFAULT 250,
+  min_rooms       NUMERIC(4,1) DEFAULT 3,
+  max_rooms       NUMERIC(4,1) DEFAULT 4,
+  default_radius  INTEGER DEFAULT 15,
+  city_radius     JSONB DEFAULT '{"Dortmund": 50, "Gelsenkirchen": 50}'::jsonb,
   cities          TEXT[] DEFAULT '{"Paderborn","Gütersloh","Bielefeld","Herford","Rheda-Wiedenbrück","Bad Oeynhausen"}',
-  keywords        TEXT[] DEFAULT '{"renovierungsbedürftig","sanierungsbedürftig","renovierung","altbau","modernisierung"}',
+  keywords        TEXT[] DEFAULT '{}',
   active          BOOLEAN DEFAULT TRUE,
-  scan_interval   INTEGER DEFAULT 15,
+  scan_interval   INTEGER DEFAULT 180,
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
 INSERT INTO search_config DEFAULT VALUES
 ON CONFLICT DO NOTHING;
+
+-- Migration: neue Spalten zu bestehender Tabelle hinzufügen (idempotent)
+ALTER TABLE search_config
+  ADD COLUMN IF NOT EXISTS min_rooms      NUMERIC(4,1) DEFAULT 3,
+  ADD COLUMN IF NOT EXISTS max_rooms      NUMERIC(4,1) DEFAULT 4,
+  ADD COLUMN IF NOT EXISTS default_radius INTEGER DEFAULT 15,
+  ADD COLUMN IF NOT EXISTS city_radius    JSONB DEFAULT '{"Dortmund": 50, "Gelsenkirchen": 50}'::jsonb;

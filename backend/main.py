@@ -37,8 +37,17 @@ async def lifespan(app: FastAPI):
             "cities": DEFAULT_FILTER["cities"],
             "min_sqm": DEFAULT_FILTER["min_sqm"],
             "max_sqm": DEFAULT_FILTER["max_sqm"],
+            "min_rooms": DEFAULT_FILTER.get("min_rooms", 3),
+            "max_rooms": DEFAULT_FILTER.get("max_rooms", 4),
+            "default_radius": DEFAULT_FILTER.get("default_radius", 15),
+            "city_radius": DEFAULT_FILTER.get("city_radius", {}),
         }).neq("id", "").execute()
-        logger.info(f"search_config synced: {len(DEFAULT_FILTER['cities'])} cities, interval={DEFAULT_FILTER['scan_interval']}min")
+        logger.info(
+            f"search_config synced: {len(DEFAULT_FILTER['cities'])} Städte, "
+            f"interval={DEFAULT_FILTER['scan_interval']}min, "
+            f"radius default={DEFAULT_FILTER.get('default_radius')}km, "
+            f"overrides={list(DEFAULT_FILTER.get('city_radius', {}).keys())}"
+        )
     except Exception as e:
         logger.warning(f"Could not sync search_config to Supabase: {e}")
 

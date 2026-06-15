@@ -132,6 +132,8 @@ async def get_config() -> SearchFilter:
                 max_sqm=row.get("max_sqm", DEFAULT_FILTER["max_sqm"]),
                 min_rooms=row.get("min_rooms", DEFAULT_FILTER.get("min_rooms", 3)),
                 max_rooms=row.get("max_rooms", DEFAULT_FILTER.get("max_rooms", 4)),
+                default_radius=row.get("default_radius", DEFAULT_FILTER.get("default_radius", 15)),
+                city_radius=row.get("city_radius") or DEFAULT_FILTER.get("city_radius", {}),
                 cities=row.get("cities", DEFAULT_FILTER["cities"]),
                 keywords=row.get("keywords", DEFAULT_FILTER["keywords"]),
                 active=row.get("active", DEFAULT_FILTER["active"]),
@@ -146,8 +148,7 @@ async def update_config(f: SearchFilter) -> SearchFilter:
     try:
         db = get_db()
         existing = db.table("search_config").select("id").limit(1).execute()
-        # Only persist fields that exist as columns in the search_config table.
-        data = f.model_dump(exclude={"min_rooms", "max_rooms", "default_radius", "city_radius"})
+        data = f.model_dump()
         data["updated_at"] = datetime.now(timezone.utc).isoformat()
         if existing.data:
             db.table("search_config").update(data).eq("id", existing.data[0]["id"]).execute()
