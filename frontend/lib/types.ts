@@ -1,7 +1,7 @@
 export interface Listing {
   id: string
   external_id: string
-  source: 'immoscout24' | 'ebay' | 'immowelt' | 'immonet'
+  source: 'ebay' | 'immowelt' | 'immonet'
   title: string
   price: number | null
   sqm: number | null

@@ -4,12 +4,11 @@ from datetime import datetime, timezone
 from database import get_config, save_listing, save_scan_log
 from telegram_bot import send_listing_notification, send_error_alert
 from models import ScanResult
-from scrapers import ImmoScout24Scraper, EbayScraper, ImmoweltScraper, ImmonetScraper
+from scrapers import EbayScraper, ImmoweltScraper, ImmonetScraper
 
 logger = logging.getLogger(__name__)
 
 _LABELS: dict[str, str] = {
-    "immoscout24": "ImmoScout24",
     "ebay": "eBay Kleinanzeigen",
     "immowelt": "Immowelt",
     "immonet": "Immonet",
@@ -38,7 +37,7 @@ async def run_all_scrapers(progress_queue: asyncio.Queue | None = None) -> None:
         await _emit(progress_queue, "done", "")
         return
 
-    scrapers = [ImmoScout24Scraper(), EbayScraper(), ImmoweltScraper(), ImmonetScraper()]
+    scrapers = [EbayScraper(), ImmoweltScraper(), ImmonetScraper()]
     all_listings = []
     errors = []
 

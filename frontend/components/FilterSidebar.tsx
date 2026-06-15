@@ -10,7 +10,6 @@ const CITIES = [
 ]
 
 const SOURCES = [
-  { value: 'immoscout24', label: 'ImmoScout24' },
   { value: 'ebay', label: 'eBay Kleinanz.' },
   { value: 'immowelt', label: 'Immowelt' },
   { value: 'immonet', label: 'Immonet' },
