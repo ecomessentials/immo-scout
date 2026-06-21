@@ -7,7 +7,7 @@ from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from database import get_config, update_config, get_listings, get_stats, get_scan_logs, get_db
+from database import get_config, update_config, get_listings, get_stats, get_scan_logs
 from telegram_bot import send_startup_message, send_test_message
 from scheduler import run_all_scrapers
 from models import SearchFilter, ListingResponse
@@ -32,19 +32,7 @@ async def lifespan(app: FastAPI):
     # Sync config defaults to Supabase so DB and code always stay consistent.
     try:
         from config import DEFAULT_FILTER
-        get_db().table("search_config").update({
-            "max_price": DEFAULT_FILTER["max_price"],
-            "scan_interval": DEFAULT_FILTER["scan_interval"],
-            "cities": DEFAULT_FILTER["cities"],
-            "min_sqm": DEFAULT_FILTER["min_sqm"],
-            "max_sqm": DEFAULT_FILTER["max_sqm"],
-            "min_rooms": DEFAULT_FILTER.get("min_rooms", 3),
-            "max_rooms": DEFAULT_FILTER.get("max_rooms", 4),
-            "default_radius": DEFAULT_FILTER.get("default_radius", 15),
-            "city_radius": DEFAULT_FILTER.get("city_radius", {}),
-            "keywords": DEFAULT_FILTER.get("keywords", []),
-            "active": DEFAULT_FILTER["active"],
-        }).neq("id", "").execute()
+        await update_config(SearchFilter(**DEFAULT_FILTER))
         logger.info(
             f"search_config synced: {len(DEFAULT_FILTER['cities'])} Städte, "
             f"interval={DEFAULT_FILTER['scan_interval']}min, "
