@@ -2,12 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useState, useEffect } from 'react'
-
-const CITIES = [
-  'Paderborn', 'Gütersloh', 'Bielefeld', 'Herford', 'Rheda-Wiedenbrück', 'Bad Oeynhausen',
-  'Detmold', 'Lippstadt', 'Soest', 'Hamm', 'Münster', 'Osnabrück',
-  'Minden', 'Bünde', 'Löhne', 'Salzuflen', 'Lemgo',
-]
+import { DEFAULT_MAX_RENT, TARGET_CITIES } from '@/lib/searchConfig'
 
 const SOURCES = [
   { value: 'ebay', label: 'eBay Kleinanz.' },
@@ -16,10 +11,11 @@ const SOURCES = [
 
 const ROOM_OPTS = [
   { label: 'Alle',   min: '',  max: ''  },
+  { label: '1 Zi',  min: '1', max: '1' },
   { label: '2 Zi',  min: '2', max: '2' },
   { label: '3 Zi',  min: '3', max: '3' },
   { label: '4 Zi',  min: '4', max: '4' },
-  { label: '3-4 Zi', min: '3', max: '4' },
+  { label: '1-5 Zi', min: '1', max: '5' },
 ]
 
 interface Props {
@@ -31,12 +27,12 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [maxPrice, setMaxPrice] = useState(Number(searchParams.get('max_price') || 195000))
-  const [minSqm, setMinSqm] = useState(Number(searchParams.get('min_sqm') || 0))
-  const [maxSqm, setMaxSqm] = useState(Number(searchParams.get('max_sqm') || 200))
+  const [maxPrice, setMaxPrice] = useState(Number(searchParams.get('max_price') || DEFAULT_MAX_RENT))
+  const [minSqm, setMinSqm] = useState(Number(searchParams.get('min_sqm') || 25))
+  const [maxSqm, setMaxSqm] = useState(Number(searchParams.get('max_sqm') || 140))
   const [selectedCities, setSelectedCities] = useState<string[]>([])
   const [selectedSources, setSelectedSources] = useState<string[]>([])
-  const [roomsKey, setRoomsKey] = useState('3-4 Zi')
+  const [roomsKey, setRoomsKey] = useState('1-5 Zi')
 
   useEffect(() => {
     const cityParam = searchParams.get('city')
@@ -47,15 +43,15 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
     const maxR = searchParams.get('max_rooms')
     if (minR && maxR) {
       const match = ROOM_OPTS.find(o => o.min === minR && o.max === maxR)
-      setRoomsKey(match ? match.label : '3-4 Zi')
+      setRoomsKey(match ? match.label : '1-5 Zi')
     }
   }, [searchParams])
 
   const applyFilters = useCallback(() => {
     const params = new URLSearchParams()
-    if (maxPrice < 195000) params.set('max_price', String(maxPrice))
-    if (minSqm > 0) params.set('min_sqm', String(minSqm))
-    if (maxSqm < 200) params.set('max_sqm', String(maxSqm))
+    if (maxPrice !== DEFAULT_MAX_RENT) params.set('max_price', String(maxPrice))
+    if (minSqm !== 25) params.set('min_sqm', String(minSqm))
+    if (maxSqm !== 140) params.set('max_sqm', String(maxSqm))
     const roomOpt = ROOM_OPTS.find(r => r.label === roomsKey)
     if (roomOpt?.min) params.set('min_rooms', roomOpt.min)
     if (roomOpt?.max) params.set('max_rooms', roomOpt.max)
@@ -66,10 +62,10 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
   }, [maxPrice, minSqm, maxSqm, roomsKey, selectedCities, selectedSources, router, onMobileClose])
 
   const reset = () => {
-    setMaxPrice(195000)
-    setMinSqm(0)
-    setMaxSqm(200)
-    setRoomsKey('3-4 Zi')
+    setMaxPrice(DEFAULT_MAX_RENT)
+    setMinSqm(25)
+    setMaxSqm(140)
+    setRoomsKey('1-5 Zi')
     setSelectedCities([])
     setSelectedSources([])
     router.push('/')
@@ -90,20 +86,20 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
     <>
       <div className="mb-5">
         <label className="text-xs font-medium text-gray-600 mb-1 block">
-          Max. Preis: {new Intl.NumberFormat('de-DE').format(maxPrice)} €
+          Max. Monatsmiete: {new Intl.NumberFormat('de-DE').format(maxPrice)} €
         </label>
         <input
           type="range"
-          min={50000}
-          max={250000}
-          step={5000}
+          min={500}
+          max={2500}
+          step={50}
           value={maxPrice}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
           className="w-full accent-blue-600"
         />
         <div className="flex justify-between text-xs text-gray-400 mt-1">
-          <span>50.000 €</span>
-          <span>250.000 €</span>
+          <span>500 €</span>
+          <span>2.500 €</span>
         </div>
       </div>
 
@@ -112,18 +108,18 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
           Wohnfläche: {minSqm} – {maxSqm} m²
         </label>
         <input
-          type="range" min={0} max={200} step={5} value={minSqm}
+          type="range" min={20} max={160} step={5} value={minSqm}
           onChange={(e) => setMinSqm(Math.min(Number(e.target.value), maxSqm - 5))}
           className="w-full accent-blue-600 mb-1"
         />
         <input
-          type="range" min={0} max={200} step={5} value={maxSqm}
+          type="range" min={20} max={160} step={5} value={maxSqm}
           onChange={(e) => setMaxSqm(Math.max(Number(e.target.value), minSqm + 5))}
           className="w-full accent-blue-600"
         />
         <div className="flex justify-between text-xs text-gray-400 mt-1">
-          <span>0 m²</span>
-          <span>200 m²</span>
+          <span>20 m²</span>
+          <span>160 m²</span>
         </div>
       </div>
 
@@ -149,7 +145,7 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
       <div className="mb-5">
         <p className="text-xs font-medium text-gray-600 mb-2">Städte</p>
         <div className="max-h-48 overflow-y-auto pr-1 space-y-1">
-          {CITIES.map((city) => (
+          {TARGET_CITIES.map((city) => (
             <label key={city} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
               <input
                 type="checkbox"

@@ -33,7 +33,7 @@ class EbayScraper(BaseScraper):
     def _page_url(self, slug: str, page: int, radius: int = 15) -> str:
         # Radius encoded as {slug}+{radius}km in the path (Kleinanzeigen URL convention)
         city_part = f"{slug}+{radius}km" if radius > 0 else slug
-        base = f"{BASE_URL}/s-wohnung-kaufen/{city_part}/k0c196"
+        base = f"{BASE_URL}/s-wohnung-mieten/{city_part}/c203"
         return base if page == 1 else f"{base}?pageNum={page}"
 
     async def _fetch(self, url: str, city: str = "") -> str | None:
@@ -136,10 +136,10 @@ class EbayScraper(BaseScraper):
                 )
                 rooms = float(rooms_match.group(1).replace(",", ".")) if rooms_match else None
 
-                # Filters: price hard, sqm extreme only, rooms if known
+                # Filters: rent, living space, and rooms if the portal exposes them.
                 if price and price > f.max_price:
                     continue
-                if sqm and sqm > 250:
+                if sqm and (sqm < f.min_sqm or sqm > f.max_sqm):
                     continue
                 if rooms is not None and f.min_rooms is not None and f.max_rooms is not None:
                     if rooms < f.min_rooms or rooms > f.max_rooms:

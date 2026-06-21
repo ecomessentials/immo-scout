@@ -31,6 +31,8 @@ export interface SearchFilter {
   min_rooms?: number
   max_rooms?: number
   cities: string[]
+  default_radius: number
+  city_radius: Record<string, number>
   keywords: string[]
   active: boolean
   scan_interval: number

@@ -8,8 +8,8 @@ import AppShell from '@/components/AppShell'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ImmobilienKrieger – Dein automatischer Immobilien-Scout',
-  description: 'Automatisches Monitoring für Eigentumswohnungen – renovierungsbedürftig, bis 195.000 €',
+  title: 'ImmobilienKrieger – Mietwohnungs-Scout',
+  description: 'Automatisches Monitoring für Mietwohnungen in ausgewählten Airbnb-Zielorten',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

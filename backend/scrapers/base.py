@@ -38,7 +38,12 @@ class BaseScraper(ABC):
     def parse_price(self, text: str) -> int | None:
         if not text:
             return None
-        digits = re.sub(r"[^\d]", "", text)
+        match = re.search(r"(\d{1,3}(?:[.\s]\d{3})*(?:,\d{2})?|\d+)", text)
+        if not match:
+            return None
+        value = match.group(1)
+        value = value.split(",")[0]
+        digits = re.sub(r"[^\d]", "", value)
         return int(digits) if digits else None
 
     def parse_sqm(self, text: str) -> float | None:

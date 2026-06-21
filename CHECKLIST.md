@@ -25,8 +25,9 @@ NEXT_PUBLIC_BACKEND_URL=https://dein-projekt.railway.app
 - ✅ Scan läuft alle 3 Stunden (APScheduler hours=3)
 - ✅ Immowelt Scraper aktiv (Playwright + Anti-Bot)
 - ✅ eBay Kleinanzeigen Scraper aktiv (httpx + BeautifulSoup)
-- ✅ Zimmerfilter: 3–4 Zimmer (rooms=None → immer behalten)
-- ✅ Preisfilter: max 195.000 €
+- ✅ Zimmerfilter: 1–5 Zimmer (rooms=None → immer behalten)
+- ✅ Mietfilter: max 1.500 € Monatsmiete
+- ✅ Zielorte: 30 Städte aus Sauerland, OWL und Weserbergland
 - ✅ Gesuch-Inserate werden gefiltert (18 AUSSCHLUSS_KEYWORDS)
 - ✅ Dark Mode verfügbar (next-themes, System-Präferenz als Standard)
 - ✅ Mobile-responsive (Tailwind mobile-first)

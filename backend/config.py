@@ -3,27 +3,49 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+TARGET_CITIES = [
+    "Winterberg",
+    "Willingen",
+    "Schmallenberg",
+    "Bad Berleburg",
+    "Medebach",
+    "Olsberg",
+    "Brilon",
+    "Hallenberg",
+    "Eslohe",
+    "Marsberg",
+    "Sundern",
+    "Arnsberg",
+    "Meschede",
+    "Bestwig",
+    "Diemelsee",
+    "Bad Driburg",
+    "Bad Pyrmont",
+    "Horn-Bad Meinberg",
+    "Detmold",
+    "Lemgo",
+    "Bad Salzuflen",
+    "Höxter",
+    "Steinheim",
+    "Schieder-Schwalenberg",
+    "Blomberg",
+    "Augustdorf",
+    "Bad Lippspringe",
+    "Bodenwerder",
+    "Hameln",
+    "Möhnesee",
+]
+
 DEFAULT_FILTER = {
-    "max_price": 195000,
-    "min_sqm": 30,
-    "max_sqm": 250,
-    "min_rooms": 3,
-    "max_rooms": 4,
-    "cities": [
-        "Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen",
-        "Detmold", "Lippstadt", "Soest", "Hamm",
-        "Minden", "Bünde", "Löhne", "Bad Salzuflen", "Lemgo",
-        "Osnabrück", "Münster", "Dortmund", "Gelsenkirchen", "Hagen", "Iserlohn",
-        "Delbrück", "Salzkotten", "Warburg", "Höxter",
-        "Büren", "Lichtenau", "Borchen", "Bad Wünnenberg",
-    ],
-    # Jede Stadt wird mit default_radius km Umkreis gesucht.
-    # Städte in city_radius überschreiben den Default.
-    "default_radius": 15,
-    "city_radius": {
-        "Dortmund": 50,
-        "Gelsenkirchen": 50,
-    },
+    "max_price": 1500,
+    "min_sqm": 25,
+    "max_sqm": 140,
+    "min_rooms": 1,
+    "max_rooms": 5,
+    "cities": TARGET_CITIES,
+    # 0 km keeps the scan focused on the selected cities only.
+    "default_radius": 0,
+    "city_radius": {},
     "keywords": [],
     "active": True,
     "scan_interval": 180,
@@ -32,7 +54,9 @@ DEFAULT_FILTER = {
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+_raw_chat_ids = os.getenv("TELEGRAM_CHAT_ID", "")
+TELEGRAM_CHAT_IDS: list[str] = [cid.strip() for cid in _raw_chat_ids.split(",") if cid.strip()]
+TELEGRAM_CHAT_ID = TELEGRAM_CHAT_IDS[0] if TELEGRAM_CHAT_IDS else ""
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

@@ -1,6 +1,8 @@
-import { Listing, Stats, SearchFilter, ScanLog, FilterParams } from './types'
+import type { Listing, Stats, SearchFilter, ScanLog, FilterParams } from './types'
+import { DEFAULT_CONFIG } from './searchConfig'
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+const EMPTY_STATS: Stats = { total: 0, today: 0, by_source: {}, last_scan_at: null }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -27,11 +29,19 @@ export async function getListings(params: FilterParams = {}): Promise<Listing[]>
   if (params.limit != null) query.set('limit', String(params.limit))
   if (params.offset != null) query.set('offset', String(params.offset))
   const qs = query.toString()
-  return apiFetch<Listing[]>(`/api/listings${qs ? `?${qs}` : ''}`)
+  try {
+    return await apiFetch<Listing[]>(`/api/listings${qs ? `?${qs}` : ''}`)
+  } catch {
+    return []
+  }
 }
 
 export async function getStats(): Promise<Stats> {
-  return apiFetch<Stats>('/api/stats')
+  try {
+    return await apiFetch<Stats>('/api/stats')
+  } catch {
+    return EMPTY_STATS
+  }
 }
 
 export async function triggerScan(): Promise<void> {
@@ -39,7 +49,11 @@ export async function triggerScan(): Promise<void> {
 }
 
 export async function getConfig(): Promise<SearchFilter> {
-  return apiFetch<SearchFilter>('/api/config')
+  try {
+    return await apiFetch<SearchFilter>('/api/config')
+  } catch {
+    return DEFAULT_CONFIG
+  }
 }
 
 export async function updateConfig(config: SearchFilter): Promise<SearchFilter> {
@@ -50,7 +64,11 @@ export async function updateConfig(config: SearchFilter): Promise<SearchFilter> 
 }
 
 export async function getScanLogs(): Promise<ScanLog[]> {
-  return apiFetch<ScanLog[]>('/api/scan-logs')
+  try {
+    return await apiFetch<ScanLog[]>('/api/scan-logs')
+  } catch {
+    return []
+  }
 }
 
 export async function testTelegram(): Promise<void> {

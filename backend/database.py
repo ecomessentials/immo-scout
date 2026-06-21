@@ -1,16 +1,43 @@
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Literal, Optional
 from supabase import create_client, Client
-from config import SUPABASE_URL, SUPABASE_SERVICE_KEY, DEFAULT_FILTER
+from config import SUPABASE_URL, SUPABASE_SERVICE_KEY, DEFAULT_FILTER, TARGET_CITIES
 from models import Listing, ListingResponse, SearchFilter, ScanResult
 
 logger = logging.getLogger(__name__)
 
 _client: Optional[Client] = None
+SaveListingResult = Literal["new", "duplicate", "skipped", "error"]
+
+
+def _city_key(value: str) -> str:
+    return (
+        value.lower()
+        .replace("ü", "ue")
+        .replace("ö", "oe")
+        .replace("ä", "ae")
+        .replace("ß", "ss")
+    )
+
+
+_TARGET_CITY_KEYS = {_city_key(city) for city in TARGET_CITIES}
+
+
+def is_database_configured() -> bool:
+    return bool(SUPABASE_URL and SUPABASE_SERVICE_KEY)
+
+
+def is_target_city(value: Optional[str]) -> bool:
+    if not value:
+        return False
+    city_key = _city_key(value)
+    return any(target in city_key for target in _TARGET_CITY_KEYS)
 
 
 def get_db() -> Client:
+    if not is_database_configured():
+        raise RuntimeError("Supabase ist nicht konfiguriert: SUPABASE_URL und SUPABASE_SERVICE_KEY fehlen")
     global _client
     if _client is None:
         _client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
@@ -27,19 +54,22 @@ async def listing_exists(external_id: str) -> bool:
         return False
 
 
-async def save_listing(listing: Listing) -> bool:
+async def save_listing(listing: Listing) -> SaveListingResult:
     try:
+        if not is_target_city(listing.city):
+            logger.info(f"Skipped listing outside target cities: {listing.external_id} ({listing.city})")
+            return "skipped"
         db = get_db()
         if await listing_exists(listing.external_id):
-            return False
+            return "duplicate"
         data = listing.model_dump(exclude={"created_at", "notified"})
         data["notified"] = False
         db.table("listings").insert(data).execute()
         logger.info(f"Saved new listing: {listing.external_id}")
-        return True
+        return "new"
     except Exception as e:
         logger.error(f"save_listing error for {listing.external_id}: {e}")
-        return False
+        return "error"
 
 
 async def mark_notified(external_id: str) -> None:
@@ -83,9 +113,16 @@ async def get_listings(
         if source:
             query = query.eq("source", source)
 
-        query = query.range(offset, offset + limit - 1)
+        if city:
+            query = query.range(offset, offset + limit - 1)
+        else:
+            query = query.limit(1000)
         result = query.execute()
-        return [ListingResponse(**row) for row in result.data]
+        rows = result.data
+        if not city:
+            rows = [row for row in rows if is_target_city(row.get("city"))]
+            rows = rows[offset:offset + limit]
+        return [ListingResponse(**row) for row in rows]
     except Exception as e:
         logger.error(f"get_listings error: {e}")
         return []
@@ -94,16 +131,13 @@ async def get_listings(
 async def get_stats() -> dict:
     try:
         db = get_db()
-        total_result = db.table("listings").select("id", count="exact").execute()
-        total = total_result.count or 0
-
         today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-        today_result = db.table("listings").select("id", count="exact").gte("created_at", today_start).execute()
-        today = today_result.count or 0
-
-        sources_result = db.table("listings").select("source").execute()
+        sources_result = db.table("listings").select("source,city,created_at").execute()
+        target_rows = [row for row in sources_result.data if is_target_city(row.get("city"))]
+        total = len(target_rows)
+        today = sum(1 for row in target_rows if (row.get("created_at") or "") >= today_start)
         by_source: dict[str, int] = {}
-        for row in sources_result.data:
+        for row in target_rows:
             s = row["source"]
             by_source[s] = by_source.get(s, 0) + 1
 

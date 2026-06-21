@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react'
 
 const VALID_EMAIL = 'fabiokrieger23@gmail.com'
-const VALID_PASSWORD = 'Immobilien12'
+const VALID_PASSWORD = 'Krieger1234?!'
 
 function IKLogo() {
   return (

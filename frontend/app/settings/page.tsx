@@ -5,17 +5,7 @@ import { getConfig, updateConfig, testTelegram, getScanLogs } from '@/lib/api'
 import { SearchFilter, ScanLog } from '@/lib/types'
 import { Bell, Search, SlidersHorizontal, History, CheckCircle, XCircle, Save, Send } from 'lucide-react'
 import useSWR from 'swr'
-
-const DEFAULT_CONFIG: SearchFilter = {
-  max_price: 195000,
-  min_sqm: 60,
-  max_sqm: 130,
-  cities: ['Paderborn', 'Gütersloh', 'Bielefeld', 'Herford', 'Rheda-Wiedenbrück', 'Bad Oeynhausen',
-    'Detmold', 'Lippstadt', 'Soest', 'Hamm', 'Minden', 'Bünde', 'Löhne', 'Bad Salzuflen', 'Lemgo'],
-  keywords: ['renovierungsbedürftig', 'sanierungsbedürftig', 'renovierung', 'altbau'],
-  active: true,
-  scan_interval: 300,
-}
+import { DEFAULT_CONFIG, TARGET_CITIES } from '@/lib/searchConfig'
 
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
@@ -120,7 +110,7 @@ export default function SettingsPage() {
     <div className="max-w-3xl mx-auto px-4 py-6 pb-28 space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Einstellungen</h1>
-        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Konfiguriere Suchparameter und Benachrichtigungen</p>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Konfiguriere Mietsuche und Benachrichtigungen</p>
       </div>
 
       {/* Toast */}
@@ -136,7 +126,7 @@ export default function SettingsPage() {
       {/* Section 1: Suchparameter */}
       <Section icon={<Search size={16} />} title="Suchparameter">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Field label="Max. Preis (€)">
+          <Field label="Max. Monatsmiete (€)">
             <Input type="number" value={config.max_price} onChange={e => setConfig(c => ({ ...c, max_price: Number(e.target.value) }))} />
           </Field>
           <Field label="Min. Fläche (m²)">
@@ -170,7 +160,7 @@ export default function SettingsPage() {
               value={newKeyword}
               onChange={e => setNewKeyword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
-              placeholder="Keyword hinzufügen…"
+              placeholder="Optionales Keyword hinzufügen…"
               className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
             />
             <button onClick={addKeyword} className="btn-primary px-3">+</button>
@@ -204,7 +194,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Scan aktiv</p>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Automatische Suche alle 5 Stunden</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Automatische Suche alle 3 Stunden</p>
           </div>
           <button
             onClick={() => setConfig(c => ({ ...c, active: !c.active }))}
@@ -214,8 +204,18 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        <Field label="Scan-Intervall (Minuten)">
-          <Input type="number" min={5} max={600} value={config.scan_interval} onChange={e => setConfig(c => ({ ...c, scan_interval: Number(e.target.value) }))} />
+        <Field label="Scan-Intervall">
+          <Input type="text" value="Alle 3 Stunden" onChange={() => {}} disabled />
+        </Field>
+
+        <Field label="Zielstädte">
+          <div className="flex flex-wrap gap-2">
+            {TARGET_CITIES.map(city => (
+              <span key={city} className="bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-lg">
+                {city}
+              </span>
+            ))}
+          </div>
         </Field>
       </Section>
 

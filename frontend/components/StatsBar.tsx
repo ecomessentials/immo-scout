@@ -73,7 +73,7 @@ export default function StatsBar({ stats, loading }: Props) {
       />
       <StatTile
         label="Aktive Portale"
-        value={`${activeSources}/4`}
+        value={`${activeSources}/2`}
         icon={<SearchCheck size={28} />}
         color="border-l-purple-500"
       />

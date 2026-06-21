@@ -1,19 +1,18 @@
-# Immo Scout – Automatisches Immobilien-Monitoring
+# Immo Scout – Automatisches Mietwohnungs-Monitoring
 
-Vollautomatisches System zum Monitoring von 4 Immobilienportalen. Sendet neue Eigentumswohnungen sofort per Telegram.
+Vollautomatisches System zum Monitoring von Mietwohnungen, die als mögliche Untervermietungs-/Airbnb-Objekte geprüft werden können. Sendet neue Treffer sofort per Telegram.
 
 ## Portale
-- ImmoScout24
 - eBay Kleinanzeigen
 - Immowelt
-- Immonet
 
 ## Standard-Suchkriterien
-- Typ: Eigentumswohnung, renovierungsbedürftig
-- Größe: 60–130 m²
-- Max. Preis: 195.000 €
-- Städte: Paderborn, Gütersloh, Bielefeld, Herford, Rheda-Wiedenbrück, Bad Oeynhausen
-- Scan-Interval: alle 15 Minuten
+- Typ: Mietwohnung
+- Größe: 25–140 m²
+- Max. Monatsmiete: 1.500 €
+- Zimmer: 1–5
+- Städte: Winterberg, Willingen, Schmallenberg, Bad Berleburg, Medebach, Olsberg, Brilon, Hallenberg, Eslohe, Marsberg, Sundern, Arnsberg, Meschede, Bestwig, Diemelsee, Bad Driburg, Bad Pyrmont, Horn-Bad Meinberg, Detmold, Lemgo, Bad Salzuflen, Höxter, Steinheim, Schieder-Schwalenberg, Blomberg, Augustdorf, Bad Lippspringe, Bodenwerder, Hameln, Möhnesee
+- Scan-Intervall: alle 3 Stunden
 
 ---
 

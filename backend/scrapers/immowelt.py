@@ -25,20 +25,14 @@ CONTEXT_OPTIONS = {
 }
 HIDE_WEBDRIVER = "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
 
-# Relaxed URL range to catch more listings; hard filter applied on results
-_URL_MIN_SQM = 50
-_URL_MAX_SQM = 150
-_URL_MAX_PRICE = 195000
-
-
 class ImmoweltScraper(BaseScraper):
     name = "immowelt"
 
-    def _build_url(self, city: str, page: int = 1, radius: int = 15) -> str:
+    def _build_url(self, city: str, f: SearchFilter, page: int = 1, radius: int = 0) -> str:
         slug = self.city_slug(city)
         url = (
-            f"{BASE_URL}/suche/{slug}/wohnungen/kaufen"
-            f"?pma={_URL_MAX_PRICE}&wflmi={_URL_MIN_SQM}&wflma={_URL_MAX_SQM}"
+            f"{BASE_URL}/suche/{slug}/wohnungen/mieten"
+            f"?wflmi={f.min_sqm}&wflma={f.max_sqm}"
             f"&umkreis={radius}"
         )
         if page > 1:
@@ -71,7 +65,7 @@ class ImmoweltScraper(BaseScraper):
             page = await context.new_page()
             try:
                 for page_num in range(1, 6):  # up to 5 pages
-                    url = self._build_url(city, page_num, radius)
+                    url = self._build_url(city, f, page_num, radius)
                     logger.info(f"[Immowelt] [{city}] Page {page_num}: {url}")
                     await page.goto(url, wait_until="domcontentloaded", timeout=30000)
                     await asyncio.sleep(3)
@@ -164,8 +158,9 @@ class ImmoweltScraper(BaseScraper):
                             img_el = await item.query_selector("img")
                             image_url = await img_el.get_attribute("src") if img_el else None
 
-                            # Only hard price filter; accept all sqm, no keyword filter
-                            if price and price > _URL_MAX_PRICE:
+                            if price and price > f.max_price:
+                                continue
+                            if sqm and (sqm < f.min_sqm or sqm > f.max_sqm):
                                 continue
 
                             listings.append(Listing(

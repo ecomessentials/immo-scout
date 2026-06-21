@@ -89,7 +89,7 @@ export default function ListingCard({ listing }: { listing: Listing }) {
         <div className="flex items-end justify-between">
           <div>
             <p className="text-xl font-bold text-primary dark:text-blue-400 leading-none">
-              {listing.price ? `${fmt(listing.price)} €` : 'Preis auf Anfrage'}
+              {listing.price ? `${fmt(listing.price)} €` : 'Miete auf Anfrage'}
             </p>
             <div className="flex items-center gap-2 mt-1.5">
               {listing.sqm && (
@@ -107,7 +107,7 @@ export default function ListingCard({ listing }: { listing: Listing }) {
           <div className="text-right">
             {listing.price_per_sqm && (
               <p className="text-xs text-gray-400 dark:text-slate-500 mb-1">
-                {fmt(listing.price_per_sqm)} €/m²
+                {fmt(listing.price_per_sqm)} €/m² Miete
               </p>
             )}
             <span className="inline-flex items-center gap-1 text-xs font-medium text-primary dark:text-blue-400 group-hover:gap-1.5 transition-all">

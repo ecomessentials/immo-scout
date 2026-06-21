@@ -35,18 +35,24 @@ class ListingResponse(Listing):
 
 
 class SearchFilter(BaseModel):
-    max_price: int = 195000
-    min_sqm: int = 60
-    max_sqm: int = 130
-    min_rooms: Optional[float] = 3.0
-    max_rooms: Optional[float] = 4.0
-    cities: list[str] = ["Paderborn", "Gütersloh", "Bielefeld", "Herford", "Rheda-Wiedenbrück", "Bad Oeynhausen"]
+    max_price: int = 1500
+    min_sqm: int = 25
+    max_sqm: int = 140
+    min_rooms: Optional[float] = 1.0
+    max_rooms: Optional[float] = 5.0
+    cities: list[str] = [
+        "Winterberg", "Willingen", "Schmallenberg", "Bad Berleburg", "Medebach", "Olsberg",
+        "Brilon", "Hallenberg", "Eslohe", "Marsberg", "Sundern", "Arnsberg", "Meschede",
+        "Bestwig", "Diemelsee", "Bad Driburg", "Bad Pyrmont", "Horn-Bad Meinberg", "Detmold",
+        "Lemgo", "Bad Salzuflen", "Höxter", "Steinheim", "Schieder-Schwalenberg", "Blomberg",
+        "Augustdorf", "Bad Lippspringe", "Bodenwerder", "Hameln", "Möhnesee",
+    ]
     # default_radius: km Umkreis für alle Städte; city_radius überschreibt pro Stadt
-    default_radius: int = 15
-    city_radius: dict[str, int] = {"Dortmund": 50, "Gelsenkirchen": 50}
+    default_radius: int = 0
+    city_radius: dict[str, int] = {}
     keywords: list[str] = []
     active: bool = True
-    scan_interval: int = 15
+    scan_interval: int = 180
 
 
 class ScanResult(BaseModel):

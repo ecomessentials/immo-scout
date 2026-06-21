@@ -3,12 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronDown, X, SlidersHorizontal } from 'lucide-react'
-
-const CITIES = [
-  'Paderborn', 'Gütersloh', 'Bielefeld', 'Herford', 'Rheda-Wiedenbrück', 'Bad Oeynhausen',
-  'Detmold', 'Lippstadt', 'Soest', 'Hamm',
-  'Minden', 'Bünde', 'Löhne', 'Bad Salzuflen', 'Lemgo',
-]
+import { DEFAULT_MAX_RENT, TARGET_CITIES } from '@/lib/searchConfig'
 
 const SOURCES = [
   { value: 'ebay', label: 'eBay Kleinanz.' },
@@ -16,19 +11,19 @@ const SOURCES = [
 ]
 
 const PRICE_OPTIONS = [
-  { label: 'bis 100.000 €', value: '100000' },
-  { label: 'bis 150.000 €', value: '150000' },
-  { label: 'bis 175.000 €', value: '175000' },
-  { label: 'bis 195.000 €', value: '195000' },
-  { label: 'bis 250.000 €', value: '250000' },
+  { label: 'bis 750 €', value: '750' },
+  { label: 'bis 1.000 €', value: '1000' },
+  { label: 'bis 1.250 €', value: '1250' },
+  { label: 'bis 1.500 €', value: '1500' },
+  { label: 'bis 2.000 €', value: '2000' },
 ]
 
 const SIZE_OPTIONS = [
-  { label: 'Alle Größen', minSqm: '', maxSqm: '' },
-  { label: '40 – 80 m²', minSqm: '40', maxSqm: '80' },
-  { label: '60 – 100 m²', minSqm: '60', maxSqm: '100' },
-  { label: '60 – 130 m²', minSqm: '60', maxSqm: '130' },
-  { label: '80 – 150 m²', minSqm: '80', maxSqm: '150' },
+  { label: 'Alle Größen', value: 'all', minSqm: '', maxSqm: '' },
+  { label: '25 – 60 m²', value: '25-60', minSqm: '25', maxSqm: '60' },
+  { label: '40 – 90 m²', value: '40-90', minSqm: '40', maxSqm: '90' },
+  { label: '60 – 120 m²', value: '60-120', minSqm: '60', maxSqm: '120' },
+  { label: '25 – 140 m²', value: '25-140', minSqm: '25', maxSqm: '140' },
 ]
 
 function MultiDropdown({
@@ -97,8 +92,9 @@ export default function FilterBar() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '195000')
-  const [sizeKey, setSizeKey] = useState('60-130')
+  const defaultMaxRent = String(DEFAULT_MAX_RENT)
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || defaultMaxRent)
+  const [sizeKey, setSizeKey] = useState('25-140')
   const [selectedCities, setSelectedCities] = useState<string[]>([])
   const [selectedSources, setSelectedSources] = useState<string[]>([])
 
@@ -107,26 +103,26 @@ export default function FilterBar() {
     const source = searchParams.get('source')
     setSelectedCities(city ? city.split(',') : [])
     setSelectedSources(source ? source.split(',') : [])
-    setMaxPrice(searchParams.get('max_price') || '195000')
-  }, [searchParams])
+    setMaxPrice(searchParams.get('max_price') || defaultMaxRent)
+  }, [defaultMaxRent, searchParams])
 
   const hasFilters = selectedCities.length > 0 || selectedSources.length > 0 ||
-    maxPrice !== '195000' || sizeKey !== '60-130'
+    maxPrice !== defaultMaxRent || sizeKey !== '25-140'
 
   const apply = useCallback(() => {
     const params = new URLSearchParams()
-    if (maxPrice && maxPrice !== '195000') params.set('max_price', maxPrice)
-    const size = SIZE_OPTIONS.find(s => s.label.includes(sizeKey))
+    if (maxPrice && maxPrice !== defaultMaxRent) params.set('max_price', maxPrice)
+    const size = SIZE_OPTIONS.find(s => s.value === sizeKey)
     if (size?.minSqm) params.set('min_sqm', size.minSqm)
     if (size?.maxSqm) params.set('max_sqm', size.maxSqm)
     if (selectedCities.length > 0) params.set('city', selectedCities[0])
     if (selectedSources.length > 0) params.set('source', selectedSources[0])
     router.push(`/?${params.toString()}`)
-  }, [maxPrice, sizeKey, selectedCities, selectedSources, router])
+  }, [defaultMaxRent, maxPrice, sizeKey, selectedCities, selectedSources, router])
 
   const reset = () => {
-    setMaxPrice('195000')
-    setSizeKey('60-130')
+    setMaxPrice(defaultMaxRent)
+    setSizeKey('25-140')
     setSelectedCities([])
     setSelectedSources([])
     router.push('/')
@@ -148,7 +144,7 @@ export default function FilterBar() {
           onChange={e => { setMaxPrice(e.target.value); }}
           onBlur={apply}
           className={`px-3 py-2 rounded-xl text-sm border cursor-pointer transition-all duration-200 bg-white dark:bg-slate-800 ${
-            maxPrice !== '195000'
+            maxPrice !== defaultMaxRent
               ? 'border-primary text-primary dark:text-blue-400 font-medium'
               : 'border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300'
           }`}
@@ -166,7 +162,7 @@ export default function FilterBar() {
           className="px-3 py-2 rounded-xl text-sm border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 cursor-pointer transition-all duration-200"
         >
           {SIZE_OPTIONS.map(o => (
-            <option key={o.label} value={o.label.includes('–') ? o.label.split(' – ')[0].replace('40', '40').split('').filter(c => /\d/.test(c)).join('') + '-' + o.label.split('– ')[1].split(' m')[0] : 'all'}>
+            <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
@@ -175,7 +171,7 @@ export default function FilterBar() {
         {/* City multi-select */}
         <MultiDropdown
           label="Alle Städte"
-          options={CITIES.map(c => ({ value: c, label: c }))}
+          options={TARGET_CITIES.map(c => ({ value: c, label: c }))}
           selected={selectedCities}
           onToggle={(c) => { toggleCity(c); }}
         />

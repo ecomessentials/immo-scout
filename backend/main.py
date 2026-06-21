@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database import get_config, update_config, get_listings, get_stats, get_scan_logs, get_db
 from telegram_bot import send_startup_message, send_test_message
@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
     try:
         from config import DEFAULT_FILTER
         get_db().table("search_config").update({
+            "max_price": DEFAULT_FILTER["max_price"],
             "scan_interval": DEFAULT_FILTER["scan_interval"],
             "cities": DEFAULT_FILTER["cities"],
             "min_sqm": DEFAULT_FILTER["min_sqm"],
@@ -41,6 +42,8 @@ async def lifespan(app: FastAPI):
             "max_rooms": DEFAULT_FILTER.get("max_rooms", 4),
             "default_radius": DEFAULT_FILTER.get("default_radius", 15),
             "city_radius": DEFAULT_FILTER.get("city_radius", {}),
+            "keywords": DEFAULT_FILTER.get("keywords", []),
+            "active": DEFAULT_FILTER["active"],
         }).neq("id", "").execute()
         logger.info(
             f"search_config synced: {len(DEFAULT_FILTER['cities'])} Städte, "
@@ -58,6 +61,9 @@ async def lifespan(app: FastAPI):
             hours=3,
             id="scrape_job",
             replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=1800,
         )
         scheduler.start()
         logger.info("Scheduler started, interval: 3 hours")
@@ -79,6 +85,81 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    return """
+    <!doctype html>
+    <html lang="de">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Immo Scout API</title>
+        <style>
+          body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+          }
+          main {
+            width: min(720px, calc(100vw - 32px));
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 28px;
+            background: #111827;
+            box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
+          }
+          h1 { margin: 0 0 10px; font-size: 28px; }
+          p { margin: 0 0 20px; color: #94a3b8; line-height: 1.6; }
+          .status {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 18px;
+            color: #86efac;
+            font-weight: 700;
+          }
+          .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #22c55e;
+          }
+          nav { display: flex; flex-wrap: wrap; gap: 10px; }
+          a {
+            color: #bfdbfe;
+            text-decoration: none;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: #1f2937;
+          }
+          a:hover { border-color: #60a5fa; color: white; }
+        </style>
+      </head>
+      <body>
+        <main>
+          <div class="status"><span class="dot"></span> Backend läuft</div>
+          <h1>Immo Scout API</h1>
+          <p>
+            Das ist die Backend-URL für Automatisierung, Scraper und Telegram.
+            Die Website läuft separat über das Frontend.
+          </p>
+          <nav>
+            <a href="/health">Health Check</a>
+            <a href="/docs">API Docs</a>
+            <a href="/api/stats">Statistiken</a>
+            <a href="/api/config">Konfiguration</a>
+          </nav>
+        </main>
+      </body>
+    </html>
+    """
 
 
 @app.get("/health")

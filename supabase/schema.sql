@@ -38,14 +38,14 @@ CREATE TABLE IF NOT EXISTS scan_logs (
 -- Tabelle: search_config (immer nur 1 Zeile)
 CREATE TABLE IF NOT EXISTS search_config (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  max_price       INTEGER DEFAULT 195000,
-  min_sqm         INTEGER DEFAULT 30,
-  max_sqm         INTEGER DEFAULT 250,
-  min_rooms       NUMERIC(4,1) DEFAULT 3,
-  max_rooms       NUMERIC(4,1) DEFAULT 4,
-  default_radius  INTEGER DEFAULT 15,
-  city_radius     JSONB DEFAULT '{"Dortmund": 50, "Gelsenkirchen": 50}'::jsonb,
-  cities          TEXT[] DEFAULT '{"Paderborn","Gütersloh","Bielefeld","Herford","Rheda-Wiedenbrück","Bad Oeynhausen"}',
+  max_price       INTEGER DEFAULT 1500,
+  min_sqm         INTEGER DEFAULT 25,
+  max_sqm         INTEGER DEFAULT 140,
+  min_rooms       NUMERIC(4,1) DEFAULT 1,
+  max_rooms       NUMERIC(4,1) DEFAULT 5,
+  default_radius  INTEGER DEFAULT 0,
+  city_radius     JSONB DEFAULT '{}'::jsonb,
+  cities          TEXT[] DEFAULT '{"Winterberg","Willingen","Schmallenberg","Bad Berleburg","Medebach","Olsberg","Brilon","Hallenberg","Eslohe","Marsberg","Sundern","Arnsberg","Meschede","Bestwig","Diemelsee","Bad Driburg","Bad Pyrmont","Horn-Bad Meinberg","Detmold","Lemgo","Bad Salzuflen","Höxter","Steinheim","Schieder-Schwalenberg","Blomberg","Augustdorf","Bad Lippspringe","Bodenwerder","Hameln","Möhnesee"}',
   keywords        TEXT[] DEFAULT '{}',
   active          BOOLEAN DEFAULT TRUE,
   scan_interval   INTEGER DEFAULT 180,
@@ -57,7 +57,22 @@ ON CONFLICT DO NOTHING;
 
 -- Migration: neue Spalten zu bestehender Tabelle hinzufügen (idempotent)
 ALTER TABLE search_config
-  ADD COLUMN IF NOT EXISTS min_rooms      NUMERIC(4,1) DEFAULT 3,
-  ADD COLUMN IF NOT EXISTS max_rooms      NUMERIC(4,1) DEFAULT 4,
-  ADD COLUMN IF NOT EXISTS default_radius INTEGER DEFAULT 15,
-  ADD COLUMN IF NOT EXISTS city_radius    JSONB DEFAULT '{"Dortmund": 50, "Gelsenkirchen": 50}'::jsonb;
+  ADD COLUMN IF NOT EXISTS min_rooms      NUMERIC(4,1) DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS max_rooms      NUMERIC(4,1) DEFAULT 5,
+  ADD COLUMN IF NOT EXISTS default_radius INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS city_radius    JSONB DEFAULT '{}'::jsonb;
+
+UPDATE search_config
+SET
+  max_price = 1500,
+  min_sqm = 25,
+  max_sqm = 140,
+  min_rooms = 1,
+  max_rooms = 5,
+  default_radius = 0,
+  city_radius = '{}'::jsonb,
+  cities = '{"Winterberg","Willingen","Schmallenberg","Bad Berleburg","Medebach","Olsberg","Brilon","Hallenberg","Eslohe","Marsberg","Sundern","Arnsberg","Meschede","Bestwig","Diemelsee","Bad Driburg","Bad Pyrmont","Horn-Bad Meinberg","Detmold","Lemgo","Bad Salzuflen","Höxter","Steinheim","Schieder-Schwalenberg","Blomberg","Augustdorf","Bad Lippspringe","Bodenwerder","Hameln","Möhnesee"}',
+  keywords = '{}',
+  active = TRUE,
+  scan_interval = 180,
+  updated_at = NOW();
