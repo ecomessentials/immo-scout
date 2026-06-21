@@ -65,6 +65,10 @@ class ScanResult(BaseModel):
     sources_scanned: list[str] = []
 
 
+class ContactUpdate(BaseModel):
+    status: str
+
+
 class FilterParams(BaseModel):
     min_price: Optional[int] = None
     max_price: Optional[int] = None

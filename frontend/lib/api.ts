@@ -1,4 +1,4 @@
-import type { Listing, Stats, SearchFilter, ScanLog, FilterParams } from './types'
+import type { ContactStatus, Listing, Stats, SearchFilter, ScanLog, FilterParams } from './types'
 import { DEFAULT_CONFIG } from './searchConfig'
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
@@ -60,6 +60,13 @@ export async function updateConfig(config: SearchFilter): Promise<SearchFilter> 
   return apiFetch<SearchFilter>('/api/config', {
     method: 'PUT',
     body: JSON.stringify(config),
+  })
+}
+
+export async function updateContactStatus(id: string, status: ContactStatus): Promise<Listing> {
+  return apiFetch<Listing>(`/api/listings/${id}/contact`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
   })
 }
 

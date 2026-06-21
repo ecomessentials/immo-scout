@@ -1,7 +1,7 @@
 'use client'
 
 import { Building2, AlertCircle } from 'lucide-react'
-import { Listing } from '@/lib/types'
+import type { ContactStatus, Listing } from '@/lib/types'
 import ListingCard from './ListingCard'
 
 function SkeletonCard() {
@@ -56,9 +56,11 @@ interface Props {
   error: boolean
   onLoadMore: () => void
   hasMore: boolean
+  messageTemplate: string
+  onStatusChange: (listing: Listing, status: ContactStatus) => Promise<void>
 }
 
-export default function ListingGrid({ listings, loading, error, onLoadMore, hasMore }: Props) {
+export default function ListingGrid({ listings, loading, error, onLoadMore, hasMore, messageTemplate, onStatusChange }: Props) {
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -69,7 +71,12 @@ export default function ListingGrid({ listings, loading, error, onLoadMore, hasM
           : listings.length === 0
           ? <EmptyState />
           : listings.map((l) => (
-              <ListingCard key={l.id || l.external_id} listing={l} />
+              <ListingCard
+                key={l.id || l.external_id}
+                listing={l}
+                messageTemplate={messageTemplate}
+                onStatusChange={onStatusChange}
+              />
             ))
         }
       </div>

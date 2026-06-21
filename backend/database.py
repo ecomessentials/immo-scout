@@ -80,6 +80,28 @@ async def mark_notified(external_id: str) -> None:
         logger.error(f"mark_notified error: {e}")
 
 
+async def update_listing_contact_status(listing_id: str, status: str) -> Optional[ListingResponse]:
+    try:
+        db = get_db()
+        normalized = status.strip().lower()
+        allowed = {"new", "contacted", "reply", "rejected", "interesting"}
+        if normalized not in allowed:
+            raise ValueError("Invalid contact status")
+
+        data = {
+            "notified": normalized != "new",
+            "condition": None if normalized == "new" else normalized,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        result = db.table("listings").update(data).eq("id", listing_id).execute()
+        if not result.data:
+            return None
+        return ListingResponse(**result.data[0])
+    except Exception as e:
+        logger.error(f"update_listing_contact_status error for {listing_id}: {e}")
+        raise
+
+
 async def get_listings(
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,

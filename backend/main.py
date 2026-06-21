@@ -7,10 +7,10 @@ from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from database import get_config, update_config, get_listings, get_stats, get_scan_logs
+from database import get_config, update_config, get_listings, get_stats, get_scan_logs, update_listing_contact_status
 from telegram_bot import send_startup_message, send_test_message
 from scheduler import run_all_scrapers
-from models import SearchFilter, ListingResponse
+from models import ContactUpdate, SearchFilter, ListingResponse
 from log_stream import SSELogHandler, log_event_stream
 
 logging.basicConfig(
@@ -193,6 +193,21 @@ async def api_listing_detail(listing_id: str):
         return ListingResponse(**result.data[0])
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/api/listings/{listing_id}/contact", response_model=ListingResponse)
+async def api_update_listing_contact(listing_id: str, payload: ContactUpdate):
+    try:
+        updated = await update_listing_contact_status(listing_id, payload.status)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Listing not found")
+        return updated
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
