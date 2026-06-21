@@ -165,7 +165,7 @@ async def api_listings(
     max_rooms: Optional[float] = Query(None),
     city: Optional[str] = Query(None),
     source: Optional[str] = Query(None),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
     return await get_listings(

@@ -92,6 +92,16 @@ async def get_listings(
     limit: int = 50,
     offset: int = 0,
 ) -> list[ListingResponse]:
+    def matches_optional_range(value, min_value, max_value) -> bool:
+        if value is None:
+            return True
+        numeric_value = float(value)
+        if min_value is not None and numeric_value < float(min_value):
+            return False
+        if max_value is not None and numeric_value > float(max_value):
+            return False
+        return True
+
     try:
         db = get_db()
         query = db.table("listings").select("*").order("created_at", desc=True)
@@ -100,28 +110,22 @@ async def get_listings(
             query = query.gte("price", min_price)
         if max_price is not None:
             query = query.lte("price", max_price)
-        if min_sqm is not None:
-            query = query.gte("sqm", min_sqm)
-        if max_sqm is not None:
-            query = query.lte("sqm", max_sqm)
-        if min_rooms is not None:
-            query = query.gte("rooms", min_rooms)
-        if max_rooms is not None:
-            query = query.lte("rooms", max_rooms)
         if city:
             query = query.ilike("city", f"%{city}%")
         if source:
             query = query.eq("source", source)
 
-        if city:
-            query = query.range(offset, offset + limit - 1)
-        else:
-            query = query.limit(1000)
+        query = query.limit(1000)
         result = query.execute()
         rows = result.data
         if not city:
             rows = [row for row in rows if is_target_city(row.get("city"))]
-            rows = rows[offset:offset + limit]
+        rows = [
+            row for row in rows
+            if matches_optional_range(row.get("sqm"), min_sqm, max_sqm)
+            and matches_optional_range(row.get("rooms"), min_rooms, max_rooms)
+        ]
+        rows = rows[offset:offset + limit]
         return [ListingResponse(**row) for row in rows]
     except Exception as e:
         logger.error(f"get_listings error: {e}")

@@ -94,7 +94,7 @@ export default function FilterBar() {
 
   const defaultMaxRent = String(DEFAULT_MAX_RENT)
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || defaultMaxRent)
-  const [sizeKey, setSizeKey] = useState('25-140')
+  const [sizeKey, setSizeKey] = useState('all')
   const [selectedCities, setSelectedCities] = useState<string[]>([])
   const [selectedSources, setSelectedSources] = useState<string[]>([])
 
@@ -104,10 +104,14 @@ export default function FilterBar() {
     setSelectedCities(city ? city.split(',') : [])
     setSelectedSources(source ? source.split(',') : [])
     setMaxPrice(searchParams.get('max_price') || defaultMaxRent)
+    const minSqm = searchParams.get('min_sqm')
+    const maxSqm = searchParams.get('max_sqm')
+    const matchingSize = SIZE_OPTIONS.find((s) => s.minSqm === (minSqm || '') && s.maxSqm === (maxSqm || ''))
+    setSizeKey(matchingSize?.value || 'all')
   }, [defaultMaxRent, searchParams])
 
   const hasFilters = selectedCities.length > 0 || selectedSources.length > 0 ||
-    maxPrice !== defaultMaxRent || sizeKey !== '25-140'
+    maxPrice !== defaultMaxRent || sizeKey !== 'all'
 
   const apply = useCallback(() => {
     const params = new URLSearchParams()
@@ -122,7 +126,7 @@ export default function FilterBar() {
 
   const reset = () => {
     setMaxPrice(defaultMaxRent)
-    setSizeKey('25-140')
+    setSizeKey('all')
     setSelectedCities([])
     setSelectedSources([])
     router.push('/')

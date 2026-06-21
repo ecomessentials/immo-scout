@@ -12,7 +12,7 @@ import ListingGrid from '@/components/ListingGrid'
 function Dashboard() {
   const searchParams = useSearchParams()
   const [offset, setOffset] = useState(0)
-  const LIMIT = 50
+  const LIMIT = 500
 
   const filterParams: FilterParams = {
     max_price: searchParams.get('max_price') ? Number(searchParams.get('max_price')) : undefined,
@@ -39,7 +39,7 @@ function Dashboard() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mietwohnungen für Airbnb</h1>
         <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-          {listingsLoading ? 'Lädt…' : `${listings.length} Inserate gefunden`}
+          {listingsLoading ? 'Lädt…' : `${listings.length} von ${stats?.total ?? listings.length} Inseraten angezeigt`}
         </p>
       </div>
 
