@@ -37,7 +37,7 @@ TARGET_CITIES = [
 ]
 
 DEFAULT_FILTER = {
-    "max_price": 1500,
+    "max_price": 550,
     "min_sqm": 25,
     "max_sqm": 140,
     "min_rooms": 1,

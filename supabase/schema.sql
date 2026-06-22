@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS scan_logs (
 -- Tabelle: search_config (immer nur 1 Zeile)
 CREATE TABLE IF NOT EXISTS search_config (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  max_price       INTEGER DEFAULT 1500,
+  max_price       INTEGER DEFAULT 550,
   min_sqm         INTEGER DEFAULT 25,
   max_sqm         INTEGER DEFAULT 140,
   min_rooms       NUMERIC(4,1) DEFAULT 1,
@@ -64,7 +64,7 @@ ALTER TABLE search_config
 
 UPDATE search_config
 SET
-  max_price = 1500,
+  max_price = 550,
   min_sqm = 25,
   max_sqm = 140,
   min_rooms = 1,

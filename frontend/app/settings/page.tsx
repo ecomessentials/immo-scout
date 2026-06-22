@@ -126,7 +126,7 @@ export default function SettingsPage() {
       {/* Section 1: Suchparameter */}
       <Section icon={<Search size={16} />} title="Suchparameter">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Field label="Max. Monatsmiete (€)">
+          <Field label="Max. Kaltmiete (€)">
             <Input type="number" value={config.max_price} onChange={e => setConfig(c => ({ ...c, max_price: Number(e.target.value) }))} />
           </Field>
           <Field label="Min. Fläche (m²)">

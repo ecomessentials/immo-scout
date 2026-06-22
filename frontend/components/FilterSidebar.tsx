@@ -86,20 +86,20 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
     <>
       <div className="mb-5">
         <label className="text-xs font-medium text-gray-600 mb-1 block">
-          Max. Monatsmiete: {new Intl.NumberFormat('de-DE').format(maxPrice)} €
+          Max. Kaltmiete: {new Intl.NumberFormat('de-DE').format(maxPrice)} €
         </label>
         <input
           type="range"
-          min={500}
-          max={2500}
+          min={300}
+          max={1500}
           step={50}
           value={maxPrice}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
           className="w-full accent-blue-600"
         />
         <div className="flex justify-between text-xs text-gray-400 mt-1">
-          <span>500 €</span>
-          <span>2.500 €</span>
+          <span>300 €</span>
+          <span>1.500 €</span>
         </div>
       </div>
 

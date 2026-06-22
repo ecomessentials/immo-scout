@@ -11,6 +11,7 @@ const SOURCES = [
 ]
 
 const PRICE_OPTIONS = [
+  { label: 'bis 550 €', value: '550' },
   { label: 'bis 750 €', value: '750' },
   { label: 'bis 1.000 €', value: '1000' },
   { label: 'bis 1.250 €', value: '1250' },

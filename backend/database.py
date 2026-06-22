@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Literal, Optional
 from supabase import create_client, Client
@@ -22,6 +23,29 @@ def _city_key(value: str) -> str:
 
 
 _TARGET_CITY_KEYS = {_city_key(city) for city in TARGET_CITIES}
+
+
+def _dedupe_key(row: dict) -> str:
+    url = (row.get("listing_url") or "").split("?")[0].rstrip("/")
+    if url:
+        return f"url:{url.lower()}"
+    title = re.sub(r"\s+", " ", (row.get("title") or "").lower()).strip()
+    city = _city_key(row.get("city") or "")
+    price = row.get("price") or ""
+    sqm = row.get("sqm") or ""
+    return f"fallback:{city}:{price}:{sqm}:{title[:80]}"
+
+
+def dedupe_listing_rows(rows: list[dict]) -> list[dict]:
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for row in rows:
+        key = _dedupe_key(row)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(row)
+    return unique
 
 
 def is_database_configured() -> bool:
@@ -54,15 +78,37 @@ async def listing_exists(external_id: str) -> bool:
         return False
 
 
+async def similar_listing_exists(listing: Listing) -> bool:
+    try:
+        db = get_db()
+        listing_url = listing.listing_url.split("?")[0].rstrip("/")
+        if listing_url:
+            result = db.table("listings").select("id").eq("listing_url", listing_url).limit(1).execute()
+            if result.data:
+                return True
+
+        query = db.table("listings").select("id").eq("city", listing.city).eq("title", listing.title).limit(1)
+        if listing.price is not None:
+            query = query.eq("price", listing.price)
+        if listing.sqm is not None:
+            query = query.eq("sqm", listing.sqm)
+        result = query.execute()
+        return len(result.data) > 0
+    except Exception as e:
+        logger.error(f"similar_listing_exists error: {e}")
+        return False
+
+
 async def save_listing(listing: Listing) -> SaveListingResult:
     try:
         if not is_target_city(listing.city):
             logger.info(f"Skipped listing outside target cities: {listing.external_id} ({listing.city})")
             return "skipped"
         db = get_db()
-        if await listing_exists(listing.external_id):
+        if await listing_exists(listing.external_id) or await similar_listing_exists(listing):
             return "duplicate"
         data = listing.model_dump(exclude={"created_at", "notified"})
+        data["listing_url"] = data["listing_url"].split("?")[0].rstrip("/")
         data["notified"] = False
         db.table("listings").insert(data).execute()
         logger.info(f"Saved new listing: {listing.external_id}")
@@ -147,6 +193,7 @@ async def get_listings(
             if matches_optional_range(row.get("sqm"), min_sqm, max_sqm)
             and matches_optional_range(row.get("rooms"), min_rooms, max_rooms)
         ]
+        rows = dedupe_listing_rows(rows)
         rows = rows[offset:offset + limit]
         return [ListingResponse(**row) for row in rows]
     except Exception as e:
@@ -158,8 +205,8 @@ async def get_stats() -> dict:
     try:
         db = get_db()
         today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-        sources_result = db.table("listings").select("source,city,created_at").execute()
-        target_rows = [row for row in sources_result.data if is_target_city(row.get("city"))]
+        sources_result = db.table("listings").select("source,city,created_at,listing_url,title,price,sqm").execute()
+        target_rows = dedupe_listing_rows([row for row in sources_result.data if is_target_city(row.get("city"))])
         total = len(target_rows)
         today = sum(1 for row in target_rows if (row.get("created_at") or "") >= today_start)
         by_source: dict[str, int] = {}

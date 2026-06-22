@@ -35,7 +35,7 @@ class ListingResponse(Listing):
 
 
 class SearchFilter(BaseModel):
-    max_price: int = 1500
+    max_price: int = 550
     min_sqm: int = 25
     max_sqm: int = 140
     min_rooms: Optional[float] = 1.0

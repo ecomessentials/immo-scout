@@ -9,7 +9,7 @@ Vollautomatisches System zum Monitoring von Mietwohnungen, die als mögliche Unt
 ## Standard-Suchkriterien
 - Typ: Mietwohnung
 - Größe: 25–140 m²
-- Max. Monatsmiete: 1.500 €
+- Max. Kaltmiete: 550 €
 - Zimmer: 1–5
 - Städte: Winterberg, Willingen, Schmallenberg, Bad Berleburg, Medebach, Olsberg, Brilon, Hallenberg, Eslohe, Marsberg, Sundern, Arnsberg, Meschede, Bestwig, Diemelsee, Bad Driburg, Bad Pyrmont, Horn-Bad Meinberg, Detmold, Lemgo, Bad Salzuflen, Höxter, Steinheim, Schieder-Schwalenberg, Blomberg, Augustdorf, Bad Lippspringe, Bodenwerder, Hameln, Möhnesee
 - Scan-Intervall: alle 3 Stunden

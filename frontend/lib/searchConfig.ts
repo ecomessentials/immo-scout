@@ -33,7 +33,7 @@ export const TARGET_CITIES = [
   'Möhnesee',
 ]
 
-export const DEFAULT_MAX_RENT = 1500
+export const DEFAULT_MAX_RENT = 550
 export const DEFAULT_MIN_SQM = 25
 export const DEFAULT_MAX_SQM = 140
 export const DEFAULT_MIN_ROOMS = 1
