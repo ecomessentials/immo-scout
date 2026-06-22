@@ -8,6 +8,7 @@ import type { ContactStatus, FilterParams, Listing } from '@/lib/types'
 import StatsBar from '@/components/StatsBar'
 import FilterBar from '@/components/FilterBar'
 import ListingGrid from '@/components/ListingGrid'
+import { DEFAULT_MAX_RENT } from '@/lib/searchConfig'
 
 const DEFAULT_MESSAGE = `Hallo,
 
@@ -36,7 +37,7 @@ function Dashboard() {
   }, [messageTemplate])
 
   const filterParams: FilterParams = {
-    max_price: searchParams.get('max_price') ? Number(searchParams.get('max_price')) : undefined,
+    max_price: searchParams.get('max_price') ? Number(searchParams.get('max_price')) : DEFAULT_MAX_RENT,
     min_sqm: searchParams.get('min_sqm') ? Number(searchParams.get('min_sqm')) : undefined,
     max_sqm: searchParams.get('max_sqm') ? Number(searchParams.get('max_sqm')) : undefined,
     min_rooms: searchParams.get('min_rooms') ? Number(searchParams.get('min_rooms')) : undefined,

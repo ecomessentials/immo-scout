@@ -48,6 +48,15 @@ def dedupe_listing_rows(rows: list[dict]) -> list[dict]:
     return unique
 
 
+def _price_within_limit(row: dict, max_price: Optional[int]) -> bool:
+    if max_price is None or row.get("price") is None:
+        return True
+    try:
+        return float(row["price"]) <= float(max_price)
+    except (TypeError, ValueError):
+        return True
+
+
 def is_database_configured() -> bool:
     return bool(SUPABASE_URL and SUPABASE_SERVICE_KEY)
 
@@ -205,8 +214,13 @@ async def get_stats() -> dict:
     try:
         db = get_db()
         today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        config = await get_config()
         sources_result = db.table("listings").select("source,city,created_at,listing_url,title,price,sqm").execute()
-        target_rows = dedupe_listing_rows([row for row in sources_result.data if is_target_city(row.get("city"))])
+        target_rows = dedupe_listing_rows([
+            row for row in sources_result.data
+            if is_target_city(row.get("city"))
+            and _price_within_limit(row, config.max_price)
+        ])
         total = len(target_rows)
         today = sum(1 for row in target_rows if (row.get("created_at") or "") >= today_start)
         by_source: dict[str, int] = {}
