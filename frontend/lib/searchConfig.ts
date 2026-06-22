@@ -10,7 +10,6 @@ export const TARGET_CITIES = [
 ]
 
 export const DEFAULT_MAX_RENT = 650
-export const DEFAULT_SOURCE = 'ebay'
 export const DEFAULT_MIN_SQM = 25
 export const DEFAULT_MAX_SQM = 140
 export const DEFAULT_MIN_ROOMS = 1

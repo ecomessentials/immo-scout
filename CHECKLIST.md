@@ -39,8 +39,8 @@ NEXT_PUBLIC_BACKEND_URL=https://dein-projekt.railway.app
 | Portal | Methode | Status |
 |--------|---------|--------|
 | eBay Kleinanzeigen | httpx + BeautifulSoup | ✅ Aktiv |
-| Immowelt | – | ❌ Deaktiviert |
-| ImmoScout24 | – | ❌ Entfernt |
+| Immowelt | Playwright + Anti-Bot | ✅ Aktiv |
+| ImmoScout24 | Offizielle OAuth-API | ✅ Optional, benötigt API-Berechtigung |
 | Immonet | – | ❌ Entfernt (leitet auf Immowelt weiter) |
 
 ## Supabase nach Deployment prüfen

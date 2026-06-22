@@ -34,6 +34,10 @@ _raw_chat_ids = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_CHAT_IDS: list[str] = [cid.strip() for cid in _raw_chat_ids.split(",") if cid.strip()]
 TELEGRAM_CHAT_ID = TELEGRAM_CHAT_IDS[0] if TELEGRAM_CHAT_IDS else ""
 
+IMMO_SCOUT24_CONSUMER_KEY = os.getenv("IMMO_SCOUT24_CONSUMER_KEY", "")
+IMMO_SCOUT24_CONSUMER_SECRET = os.getenv("IMMO_SCOUT24_CONSUMER_SECRET", "")
+IMMO_SCOUT24_BASE_URL = os.getenv("IMMO_SCOUT24_BASE_URL", "https://rest.immobilienscout24.de")
+
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "

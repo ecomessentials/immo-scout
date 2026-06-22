@@ -4,6 +4,8 @@ Vollautomatisches System zum Monitoring von Mietwohnungen, die als mögliche Unt
 
 ## Portale
 - eBay Kleinanzeigen
+- Immowelt
+- ImmoScout24 (optional per API-Zugang)
 
 ## Standard-Suchkriterien
 - Typ: Mietwohnung
@@ -46,6 +48,8 @@ Vollautomatisches System zum Monitoring von Mietwohnungen, die als mögliche Unt
    SUPABASE_SERVICE_KEY=eyJ...
    TELEGRAM_BOT_TOKEN=123456789:AAF...
    TELEGRAM_CHAT_ID=-100123456789
+   IMMO_SCOUT24_CONSUMER_KEY=...
+   IMMO_SCOUT24_CONSUMER_SECRET=...
    ```
 5. Railway deployed automatisch via `Dockerfile`
 

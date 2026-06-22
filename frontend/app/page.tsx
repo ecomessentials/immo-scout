@@ -9,7 +9,7 @@ import { CheckCircle2, MessageCircle, Send, Sparkles, Star, XCircle } from 'luci
 import StatsBar from '@/components/StatsBar'
 import FilterBar from '@/components/FilterBar'
 import ListingGrid from '@/components/ListingGrid'
-import { DEFAULT_MAX_RENT, DEFAULT_SOURCE } from '@/lib/searchConfig'
+import { DEFAULT_MAX_RENT } from '@/lib/searchConfig'
 
 const DEFAULT_MESSAGE = `Hallo,
 
@@ -133,7 +133,7 @@ function Dashboard() {
     min_rooms: searchParams.get('min_rooms') ? Number(searchParams.get('min_rooms')) : undefined,
     max_rooms: searchParams.get('max_rooms') ? Number(searchParams.get('max_rooms')) : undefined,
     city: searchParams.get('city') || undefined,
-    source: searchParams.get('source') || DEFAULT_SOURCE,
+    source: searchParams.get('source') || undefined,
   }
 
   const { data: stats, isLoading: statsLoading } = useSWR('stats', getStats, {

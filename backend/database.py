@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 _client: Optional[Client] = None
 SaveListingResult = Literal["new", "duplicate", "skipped", "error"]
+ACTIVE_SOURCES = {"ebay", "immowelt", "immoscout24"}
 
 
 def _city_key(value: str) -> str:
@@ -110,8 +111,8 @@ async def similar_listing_exists(listing: Listing) -> bool:
 
 async def save_listing(listing: Listing) -> SaveListingResult:
     try:
-        if listing.source != "ebay":
-            logger.info(f"Skipped non-eBay listing: {listing.external_id} ({listing.source})")
+        if listing.source not in ACTIVE_SOURCES:
+            logger.info(f"Skipped inactive source listing: {listing.external_id} ({listing.source})")
             return "skipped"
         if not is_target_city(listing.city):
             logger.info(f"Skipped listing outside target cities: {listing.external_id} ({listing.city})")
@@ -186,7 +187,7 @@ async def get_listings(
         return True
 
     try:
-        if source and source != "ebay":
+        if source and source not in ACTIVE_SOURCES:
             return []
         config = await get_config()
         effective_max_price = max_price if max_price is not None else config.max_price
@@ -198,7 +199,10 @@ async def get_listings(
         query = query.lte("price", effective_max_price)
         if city:
             query = query.ilike("city", f"%{city}%")
-        query = query.eq("source", "ebay")
+        if source:
+            query = query.eq("source", source)
+        else:
+            query = query.in_("source", list(ACTIVE_SOURCES))
 
         query = query.limit(1000)
         result = query.execute()
@@ -227,7 +231,7 @@ async def get_stats() -> dict:
         target_rows = dedupe_listing_rows([
             row for row in sources_result.data
             if is_target_city(row.get("city"))
-            and row.get("source") == "ebay"
+            and row.get("source") in ACTIVE_SOURCES
             and _price_within_limit(row, config.max_price)
         ])
         total = len(target_rows)

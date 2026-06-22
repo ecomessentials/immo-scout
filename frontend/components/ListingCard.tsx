@@ -7,11 +7,13 @@ import type { ContactStatus, Listing } from '@/lib/types'
 const SOURCE_COLORS: Record<string, string> = {
   ebay: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   immowelt: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+  immoscout24: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
 }
 
 const SOURCE_LABELS: Record<string, string> = {
   ebay: 'eBay',
   immowelt: 'Immowelt',
+  immoscout24: 'ImmoScout24',
 }
 
 const STATUS_LABELS: Record<ContactStatus, string> = {
