@@ -188,13 +188,14 @@ async def get_listings(
     try:
         if source and source != "ebay":
             return []
+        config = await get_config()
+        effective_max_price = max_price if max_price is not None else config.max_price
         db = get_db()
         query = db.table("listings").select("*").order("created_at", desc=True)
 
         if min_price is not None:
             query = query.gte("price", min_price)
-        if max_price is not None:
-            query = query.lte("price", max_price)
+        query = query.lte("price", effective_max_price)
         if city:
             query = query.ilike("city", f"%{city}%")
         query = query.eq("source", "ebay")
