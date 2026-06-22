@@ -1,10 +1,10 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { getListings, getStats, updateContactStatus } from '@/lib/api'
-import type { ContactStatus, FilterParams, Listing } from '@/lib/types'
+import type { ContactStatus, FilterParams, Listing, Stats } from '@/lib/types'
 import StatsBar from '@/components/StatsBar'
 import FilterBar from '@/components/FilterBar'
 import ListingGrid from '@/components/ListingGrid'
@@ -56,6 +56,23 @@ function Dashboard() {
     { refreshInterval: 60000 }
   )
 
+  const displayStats = useMemo<Stats | undefined>(() => {
+    if (!listings.length) return stats
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const bySource = listings.reduce<Record<string, number>>((acc, listing) => {
+      acc[listing.source] = (acc[listing.source] || 0) + 1
+      return acc
+    }, {})
+
+    return {
+      total: listings.length,
+      today: listings.filter((listing) => new Date(listing.created_at) >= todayStart).length,
+      by_source: bySource,
+      last_scan_at: stats?.last_scan_at ?? null,
+    }
+  }, [listings, stats])
+
   const handleStatusChange = async (listing: Listing, status: ContactStatus) => {
     if (!listing.id) return
     const previous = listings
@@ -78,11 +95,11 @@ function Dashboard() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mietwohnungen für Airbnb</h1>
         <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-          {listingsLoading ? 'Lädt…' : `${listings.length} von ${stats?.total ?? listings.length} Inseraten angezeigt`}
+          {listingsLoading ? 'Lädt…' : `${listings.length} von ${displayStats?.total ?? listings.length} Inseraten angezeigt`}
         </p>
       </div>
 
-      <StatsBar stats={stats} loading={statsLoading} />
+      <StatsBar stats={displayStats} loading={statsLoading && listings.length === 0} />
       <FilterBar />
 
       <section className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-4">
