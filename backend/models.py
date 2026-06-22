@@ -48,7 +48,7 @@ class SearchFilter(BaseModel):
     city_radius: dict[str, int] = {}
     keywords: list[str] = []
     active: bool = True
-    scan_interval: int = 180
+    scan_interval: int = 60
 
 
 class ScanResult(BaseModel):

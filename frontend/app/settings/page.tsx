@@ -194,7 +194,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Scan aktiv</p>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Automatische Suche alle 3 Stunden</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Automatische Suche jede Stunde</p>
           </div>
           <button
             onClick={() => setConfig(c => ({ ...c, active: !c.active }))}
@@ -205,7 +205,7 @@ export default function SettingsPage() {
         </div>
 
         <Field label="Scan-Intervall">
-          <Input type="text" value="Alle 3 Stunden" onChange={() => {}} disabled />
+          <Input type="text" value="Jede Stunde" onChange={() => {}} disabled />
         </Field>
 
         <Field label="Zielstädte">

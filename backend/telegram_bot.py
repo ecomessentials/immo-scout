@@ -81,7 +81,7 @@ async def send_startup_message() -> None:
     bot = _get_bot()
     if not bot:
         return
-    text = "🏠 ImmobilienKrieger gestartet! Nächster Scan in 3 Stunden."
+    text = "🏠 ImmobilienKrieger gestartet! Nächster Scan in 1 Stunde."
     for chat_id in TELEGRAM_CHAT_IDS:
         try:
             await bot.send_message(chat_id=chat_id, text=text)

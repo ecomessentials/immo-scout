@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS search_config (
   cities          TEXT[] DEFAULT '{"Winterberg","Münster","Bad Salzuflen","Paderborn","Detmold","Hameln"}',
   keywords        TEXT[] DEFAULT '{}',
   active          BOOLEAN DEFAULT TRUE,
-  scan_interval   INTEGER DEFAULT 180,
+  scan_interval   INTEGER DEFAULT 60,
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -74,5 +74,5 @@ SET
   cities = '{"Winterberg","Münster","Bad Salzuflen","Paderborn","Detmold","Hameln"}',
   keywords = '{}',
   active = TRUE,
-  scan_interval = 180,
+  scan_interval = 60,
   updated_at = NOW();

@@ -22,7 +22,7 @@ NEXT_PUBLIC_BACKEND_URL=https://dein-projekt.railway.app
 ```
 
 ## System Status
-- ✅ Scan läuft alle 3 Stunden (APScheduler hours=3)
+- ✅ Scan läuft jede Stunde (APScheduler hours=1)
 - ✅ eBay Kleinanzeigen Scraper aktiv (httpx + BeautifulSoup)
 - ✅ Zimmerfilter: 1–5 Zimmer (rooms=None → immer behalten)
 - ✅ Mietfilter: max 650 € Kaltmiete
@@ -49,8 +49,8 @@ NEXT_PUBLIC_BACKEND_URL=https://dein-projekt.railway.app
 DELETE FROM listings;
 DELETE FROM scan_logs;
 
--- Scan-Interval auf 180 setzen:
-UPDATE search_config SET scan_interval = 180;
+-- Scan-Interval auf 60 setzen:
+UPDATE search_config SET scan_interval = 60;
 
 -- Config prüfen:
 SELECT * FROM search_config;

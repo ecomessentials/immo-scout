@@ -190,13 +190,9 @@ async def get_listings(
         if source and source not in ACTIVE_SOURCES:
             return []
         config = await get_config()
-        effective_max_price = max_price if max_price is not None else config.max_price
         db = get_db()
         query = db.table("listings").select("*").order("created_at", desc=True)
 
-        if min_price is not None:
-            query = query.gte("price", min_price)
-        query = query.lte("price", effective_max_price)
         if city:
             query = query.ilike("city", f"%{city}%")
         if source:
@@ -211,7 +207,8 @@ async def get_listings(
             rows = [row for row in rows if is_target_city(row.get("city"))]
         rows = [
             row for row in rows
-            if matches_optional_range(row.get("sqm"), min_sqm, max_sqm)
+            if matches_optional_range(row.get("price"), min_price, max_price if max_price is not None else config.max_price)
+            and matches_optional_range(row.get("sqm"), min_sqm, max_sqm)
             and matches_optional_range(row.get("rooms"), min_rooms, max_rooms)
         ]
         rows = dedupe_listing_rows(rows)
@@ -224,23 +221,16 @@ async def get_listings(
 
 async def get_stats() -> dict:
     try:
-        db = get_db()
         today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-        config = await get_config()
-        sources_result = db.table("listings").select("source,city,created_at,listing_url,title,price,sqm").execute()
-        target_rows = dedupe_listing_rows([
-            row for row in sources_result.data
-            if is_target_city(row.get("city"))
-            and row.get("source") in ACTIVE_SOURCES
-            and _price_within_limit(row, config.max_price)
-        ])
-        total = len(target_rows)
-        today = sum(1 for row in target_rows if (row.get("created_at") or "") >= today_start)
+        listings = await get_listings(limit=1000)
+        total = len(listings)
+        today = sum(1 for listing in listings if (listing.created_at.isoformat() if listing.created_at else "") >= today_start)
         by_source: dict[str, int] = {}
-        for row in target_rows:
-            s = row["source"]
+        for listing in listings:
+            s = listing.source
             by_source[s] = by_source.get(s, 0) + 1
 
+        db = get_db()
         last_scan_result = (
             db.table("scan_logs").select("finished_at").order("finished_at", desc=True).limit(1).execute()
         )

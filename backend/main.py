@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
         scheduler.add_job(
             run_all_scrapers,
             "interval",
-            hours=3,
+            hours=1,
             id="scrape_job",
             replace_existing=True,
             max_instances=1,
@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
             misfire_grace_time=1800,
         )
         scheduler.start()
-        logger.info("Scheduler started, interval: 3 hours")
+        logger.info("Scheduler started, interval: 1 hour")
     except Exception as e:
         logger.error(f"Scheduler failed to start: {e}")
 
@@ -237,8 +237,8 @@ async def api_get_config():
 async def api_update_config(f: SearchFilter):
     updated = await update_config(f)
     if scheduler.running:
-        scheduler.reschedule_job("scrape_job", trigger="interval", hours=3)
-        logger.info("Rescheduled job to 3 hours interval")
+        scheduler.reschedule_job("scrape_job", trigger="interval", hours=1)
+        logger.info("Rescheduled job to 1 hour interval")
     return updated
 
 

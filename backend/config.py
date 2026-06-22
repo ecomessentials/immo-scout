@@ -24,7 +24,7 @@ DEFAULT_FILTER = {
     "city_radius": {},
     "keywords": [],
     "active": True,
-    "scan_interval": 180,
+    "scan_interval": 60,
 }
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")

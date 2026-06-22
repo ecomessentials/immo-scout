@@ -13,7 +13,7 @@ Vollautomatisches System zum Monitoring von Mietwohnungen, die als mögliche Unt
 - Max. Kaltmiete: 650 €
 - Zimmer: 1–5
 - Städte: Winterberg, Münster, Bad Salzuflen, Paderborn, Detmold, Hameln
-- Scan-Intervall: alle 3 Stunden
+- Scan-Intervall: jede Stunde
 
 ---
 
