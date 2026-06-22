@@ -2,6 +2,7 @@ import re
 import logging
 from abc import ABC, abstractmethod
 from models import Listing, SearchFilter
+from config import TARGET_CITIES
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,20 @@ AUSSCHLUSS_KEYWORDS = [
     "dringend gesucht", "wohnung gesucht", "auf der suche",
     "vermieter gesucht", "miete gesucht",
 ]
+
+
+def _city_key(value: str) -> str:
+    return (
+        value.lower()
+        .replace("ü", "ue")
+        .replace("ö", "oe")
+        .replace("ä", "ae")
+        .replace("ß", "ss")
+    )
+
+
+_TARGET_CITY_BY_KEY = {_city_key(city): city for city in TARGET_CITIES}
+_TARGET_CITY_KEYS = set(_TARGET_CITY_BY_KEY)
 
 
 class BaseScraper(ABC):
@@ -75,3 +90,35 @@ class BaseScraper(ABC):
         slug = re.sub(r"[^a-z0-9-]", "-", slug)
         slug = re.sub(r"-+", "-", slug).strip("-")
         return slug
+
+    def verified_target_city(self, location_text: str | None, expected_city: str | None = None) -> str | None:
+        if not location_text:
+            return None
+
+        raw = location_text.strip()
+        location = _city_key(raw)
+        location = re.sub(r"\b\d{4,5}\b", " ", location)
+        location = re.sub(r"\s+", " ", location).strip(" ,;-")
+
+        if "kreis " in location or "landkreis " in location:
+            return None
+
+        for key, city in _TARGET_CITY_BY_KEY.items():
+            if re.search(rf"(^|[^a-z0-9]){re.escape(key)}([^a-z0-9]|$)", location):
+                if expected_city and _city_key(expected_city) != key:
+                    return None
+                return city
+        return None
+
+    def mentions_other_location(self, text: str, verified_city: str) -> bool:
+        known_other_cities = {
+            "dortmund", "bielefeld", "herford", "lemgo", "minden", "hannover", "kassel",
+            "koeln", "köln", "duesseldorf", "düsseldorf", "bonn", "essen", "bochum",
+            "wuppertal", "duisburg", "muenchen", "münchen", "nuernberg", "nürnberg",
+            "augsburg", "berlin", "hamburg", "bremen", "schwerin", "rostock", "mainz",
+            "koblenz", "trier", "ludwigshafen", "kaiserslautern",
+            "bayern", "mecklenburg", "rheinland", "pfalz",
+        }
+        normalized = _city_key(text)
+        verified_key = _city_key(verified_city)
+        return any(city != verified_key and re.search(rf"\b{re.escape(city)}\b", normalized) for city in known_other_cities)

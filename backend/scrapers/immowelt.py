@@ -52,6 +52,23 @@ class ImmoweltScraper(BaseScraper):
                 return items
         return []
 
+    async def _extract_location_text(self, item) -> str:
+        selectors = [
+            '[data-testid*="address"]',
+            '[data-testid*="location"]',
+            '[class*="address"]',
+            '[class*="Address"]',
+            '[class*="location"]',
+            '[class*="Location"]',
+        ]
+        parts: list[str] = []
+        for selector in selectors:
+            for element in await item.query_selector_all(selector):
+                text = (await element.inner_text()).strip()
+                if text:
+                    parts.append(text)
+        return " ".join(parts)
+
     async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
         listings: list[Listing] = []
         seen_ids: set[str] = set()
@@ -101,11 +118,15 @@ class ImmoweltScraper(BaseScraper):
                                     continue
                                 seen_ids.add(external_id)
                                 title_text = (await link_el.inner_text()).strip()
+                                verified_city = self.verified_target_city(title_text, city)
+                                if not verified_city:
+                                    logger.info(f"[Immowelt] [{city}] Fallback ohne verifizierten Zielort übersprungen")
+                                    continue
                                 listings.append(Listing(
                                     external_id=external_id,
                                     source=self.name,
                                     title=title_text or f"Wohnung in {city}",
-                                    city=city,
+                                    city=verified_city,
                                     listing_url=listing_url,
                                     condition=None,
                                 ))
@@ -141,6 +162,15 @@ class ImmoweltScraper(BaseScraper):
                                 logger.info(f"[Immowelt] [{city}] Überspringe Gesuch: {title[:60]}")
                                 continue
 
+                            location_text = await self._extract_location_text(item)
+                            verified_city = self.verified_target_city(location_text, city)
+                            if not verified_city:
+                                logger.info(f"[Immowelt] [{city}] Ort nicht verifiziert, überspringe: {location_text or title[:80]}")
+                                continue
+                            if self.mentions_other_location(f"{title} {location_text}", verified_city):
+                                logger.info(f"[Immowelt] [{city}] Fremder Ort im Text, überspringe: {title[:80]}")
+                                continue
+
                             price_el = await item.query_selector('[data-testid="cardmfe-price-testid"]')
                             price_text = (await price_el.inner_text()).strip() if price_el else ""
                             price = self.parse_price(price_text) if price_text else None
@@ -170,7 +200,7 @@ class ImmoweltScraper(BaseScraper):
                                 price=price,
                                 sqm=sqm,
                                 rooms=rooms,
-                                city=city,
+                                city=verified_city,
                                 image_url=image_url,
                                 listing_url=listing_url,
                                 condition=None,

@@ -11,6 +11,14 @@ logger = logging.getLogger(__name__)
 _client: Optional[Client] = None
 SaveListingResult = Literal["new", "duplicate", "skipped", "error"]
 ACTIVE_SOURCES = {"ebay", "immowelt", "immoscout24"}
+FOREIGN_LOCATION_KEYS = {
+    "dortmund", "bielefeld", "herford", "lemgo", "minden", "hannover", "kassel",
+    "koeln", "duesseldorf", "bonn", "essen", "bochum", "wuppertal", "duisburg",
+    "muenchen", "nuernberg", "augsburg", "regensburg", "wuerzburg", "ingolstadt",
+    "berlin", "hamburg", "bremen", "schwerin", "rostock", "stralsund", "greifswald",
+    "mainz", "koblenz", "trier", "ludwigshafen", "kaiserslautern", "speyer", "worms",
+    "bayern", "mecklenburg", "rheinland", "pfalz",
+}
 
 
 def _city_key(value: str) -> str:
@@ -58,6 +66,15 @@ def _price_within_limit(row: dict, max_price: Optional[int]) -> bool:
         return True
 
 
+def has_foreign_location_text(*values: Optional[str], verified_city: Optional[str] = None) -> bool:
+    text = _city_key(" ".join(value for value in values if value))
+    verified_key = _city_key(verified_city or "")
+    return any(
+        location != verified_key and re.search(rf"\b{re.escape(location)}\b", text)
+        for location in FOREIGN_LOCATION_KEYS
+    )
+
+
 def is_database_configured() -> bool:
     return bool(SUPABASE_URL and SUPABASE_SERVICE_KEY)
 
@@ -66,7 +83,11 @@ def is_target_city(value: Optional[str]) -> bool:
     if not value:
         return False
     city_key = _city_key(value)
-    return any(target in city_key for target in _TARGET_CITY_KEYS)
+    city_key = re.sub(r"\b\d{4,5}\b", " ", city_key)
+    city_key = re.sub(r"\s+", " ", city_key).strip(" ,;-")
+    if "kreis " in city_key or "landkreis " in city_key:
+        return False
+    return any(re.search(rf"(^|[^a-z0-9]){re.escape(target)}([^a-z0-9]|$)", city_key) for target in _TARGET_CITY_KEYS)
 
 
 def get_db() -> Client:
@@ -116,6 +137,9 @@ async def save_listing(listing: Listing) -> SaveListingResult:
             return "skipped"
         if not is_target_city(listing.city):
             logger.info(f"Skipped listing outside target cities: {listing.external_id} ({listing.city})")
+            return "skipped"
+        if has_foreign_location_text(listing.title, listing.description, listing.address, verified_city=listing.city):
+            logger.info(f"Skipped listing with foreign location text: {listing.external_id} ({listing.title[:80]})")
             return "skipped"
         if listing.price is not None and listing.price > DEFAULT_FILTER["max_price"]:
             logger.info(f"Skipped listing above rent cap: {listing.external_id} ({listing.price})")
@@ -205,6 +229,15 @@ async def get_listings(
         rows = result.data
         if not city:
             rows = [row for row in rows if is_target_city(row.get("city"))]
+        rows = [
+            row for row in rows
+            if not has_foreign_location_text(
+                row.get("title"),
+                row.get("description"),
+                row.get("address"),
+                verified_city=row.get("city"),
+            )
+        ]
         rows = [
             row for row in rows
             if matches_optional_range(row.get("price"), min_price, max_price if max_price is not None else config.max_price)

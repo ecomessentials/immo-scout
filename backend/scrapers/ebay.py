@@ -74,9 +74,13 @@ class EbayScraper(BaseScraper):
                 seen_ids.add(external_id)
                 listing_url = href if href.startswith("http") else BASE_URL + href
                 title = link.get_text(strip=True) or f"Wohnung in {city}"
+                verified_city = self.verified_target_city(title, city)
+                if not verified_city or self.mentions_other_location(title, verified_city):
+                    logger.info(f"[eBay] [{city}] Fallback ohne verifizierten Zielort übersprungen: {title[:80]}")
+                    continue
                 listings.append(Listing(
                     external_id=external_id, source=self.name, title=title,
-                    city=city, listing_url=listing_url, condition=None,
+                    city=verified_city, listing_url=listing_url, condition=None,
                 ))
             logger.info(f"[eBay] [{city}] {len(listings)} via Link-Fallback")
             return listings
@@ -118,11 +122,18 @@ class EbayScraper(BaseScraper):
                 description = desc_el.get_text(strip=True) if desc_el else ""
 
                 city_el = item.select_one("div.aditem-main--top--left")
-                item_city = city
+                item_city = ""
                 if city_el:
                     spans = city_el.select("span")
                     if spans:
-                        item_city = spans[-1].get_text(strip=True) or city
+                        item_city = spans[-1].get_text(strip=True)
+                verified_city = self.verified_target_city(item_city, city)
+                if not verified_city:
+                    logger.info(f"[eBay] [{city}] Ort nicht verifiziert, überspringe: {item_city or title[:60]}")
+                    continue
+                if self.mentions_other_location(f"{title} {description}", verified_city):
+                    logger.info(f"[eBay] [{city}] Fremder Ort im Text, überspringe: {title[:80]}")
+                    continue
 
                 img_el = item.select_one("img")
                 image_url = img_el.get("src") if img_el else None
@@ -148,7 +159,7 @@ class EbayScraper(BaseScraper):
 
                 listings.append(Listing(
                     external_id=external_id, source=self.name, title=title,
-                    price=price, sqm=sqm, rooms=rooms, city=item_city,
+                    price=price, sqm=sqm, rooms=rooms, city=verified_city,
                     description=description[:500] if description else None,
                     image_url=image_url, listing_url=listing_url, condition=None,
                 ))
