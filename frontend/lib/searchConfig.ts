@@ -2,38 +2,15 @@ import type { SearchFilter } from './types'
 
 export const TARGET_CITIES = [
   'Winterberg',
-  'Willingen',
-  'Schmallenberg',
-  'Bad Berleburg',
-  'Medebach',
-  'Olsberg',
-  'Brilon',
-  'Hallenberg',
-  'Eslohe',
-  'Marsberg',
-  'Sundern',
-  'Arnsberg',
-  'Meschede',
-  'Bestwig',
-  'Diemelsee',
-  'Bad Driburg',
-  'Bad Pyrmont',
-  'Horn-Bad Meinberg',
-  'Detmold',
-  'Lemgo',
+  'Münster',
   'Bad Salzuflen',
-  'Höxter',
-  'Steinheim',
-  'Schieder-Schwalenberg',
-  'Blomberg',
-  'Augustdorf',
-  'Bad Lippspringe',
-  'Bodenwerder',
+  'Paderborn',
+  'Detmold',
   'Hameln',
-  'Möhnesee',
 ]
 
-export const DEFAULT_MAX_RENT = 550
+export const DEFAULT_MAX_RENT = 650
+export const DEFAULT_SOURCE = 'ebay'
 export const DEFAULT_MIN_SQM = 25
 export const DEFAULT_MAX_SQM = 140
 export const DEFAULT_MIN_ROOMS = 1

@@ -35,17 +35,13 @@ class ListingResponse(Listing):
 
 
 class SearchFilter(BaseModel):
-    max_price: int = 550
+    max_price: int = 650
     min_sqm: int = 25
     max_sqm: int = 140
     min_rooms: Optional[float] = 1.0
     max_rooms: Optional[float] = 5.0
     cities: list[str] = [
-        "Winterberg", "Willingen", "Schmallenberg", "Bad Berleburg", "Medebach", "Olsberg",
-        "Brilon", "Hallenberg", "Eslohe", "Marsberg", "Sundern", "Arnsberg", "Meschede",
-        "Bestwig", "Diemelsee", "Bad Driburg", "Bad Pyrmont", "Horn-Bad Meinberg", "Detmold",
-        "Lemgo", "Bad Salzuflen", "Höxter", "Steinheim", "Schieder-Schwalenberg", "Blomberg",
-        "Augustdorf", "Bad Lippspringe", "Bodenwerder", "Hameln", "Möhnesee",
+        "Winterberg", "Münster", "Bad Salzuflen", "Paderborn", "Detmold", "Hameln",
     ]
     # default_radius: km Umkreis für alle Städte; city_radius überschreibt pro Stadt
     default_radius: int = 0

@@ -38,14 +38,14 @@ CREATE TABLE IF NOT EXISTS scan_logs (
 -- Tabelle: search_config (immer nur 1 Zeile)
 CREATE TABLE IF NOT EXISTS search_config (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  max_price       INTEGER DEFAULT 550,
+  max_price       INTEGER DEFAULT 650,
   min_sqm         INTEGER DEFAULT 25,
   max_sqm         INTEGER DEFAULT 140,
   min_rooms       NUMERIC(4,1) DEFAULT 1,
   max_rooms       NUMERIC(4,1) DEFAULT 5,
   default_radius  INTEGER DEFAULT 0,
   city_radius     JSONB DEFAULT '{}'::jsonb,
-  cities          TEXT[] DEFAULT '{"Winterberg","Willingen","Schmallenberg","Bad Berleburg","Medebach","Olsberg","Brilon","Hallenberg","Eslohe","Marsberg","Sundern","Arnsberg","Meschede","Bestwig","Diemelsee","Bad Driburg","Bad Pyrmont","Horn-Bad Meinberg","Detmold","Lemgo","Bad Salzuflen","Höxter","Steinheim","Schieder-Schwalenberg","Blomberg","Augustdorf","Bad Lippspringe","Bodenwerder","Hameln","Möhnesee"}',
+  cities          TEXT[] DEFAULT '{"Winterberg","Münster","Bad Salzuflen","Paderborn","Detmold","Hameln"}',
   keywords        TEXT[] DEFAULT '{}',
   active          BOOLEAN DEFAULT TRUE,
   scan_interval   INTEGER DEFAULT 180,
@@ -64,14 +64,14 @@ ALTER TABLE search_config
 
 UPDATE search_config
 SET
-  max_price = 550,
+  max_price = 650,
   min_sqm = 25,
   max_sqm = 140,
   min_rooms = 1,
   max_rooms = 5,
   default_radius = 0,
   city_radius = '{}'::jsonb,
-  cities = '{"Winterberg","Willingen","Schmallenberg","Bad Berleburg","Medebach","Olsberg","Brilon","Hallenberg","Eslohe","Marsberg","Sundern","Arnsberg","Meschede","Bestwig","Diemelsee","Bad Driburg","Bad Pyrmont","Horn-Bad Meinberg","Detmold","Lemgo","Bad Salzuflen","Höxter","Steinheim","Schieder-Schwalenberg","Blomberg","Augustdorf","Bad Lippspringe","Bodenwerder","Hameln","Möhnesee"}',
+  cities = '{"Winterberg","Münster","Bad Salzuflen","Paderborn","Detmold","Hameln"}',
   keywords = '{}',
   active = TRUE,
   scan_interval = 180,

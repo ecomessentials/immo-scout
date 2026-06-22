@@ -4,14 +4,13 @@ Vollautomatisches System zum Monitoring von Mietwohnungen, die als mögliche Unt
 
 ## Portale
 - eBay Kleinanzeigen
-- Immowelt
 
 ## Standard-Suchkriterien
 - Typ: Mietwohnung
 - Größe: 25–140 m²
-- Max. Kaltmiete: 550 €
+- Max. Kaltmiete: 650 €
 - Zimmer: 1–5
-- Städte: Winterberg, Willingen, Schmallenberg, Bad Berleburg, Medebach, Olsberg, Brilon, Hallenberg, Eslohe, Marsberg, Sundern, Arnsberg, Meschede, Bestwig, Diemelsee, Bad Driburg, Bad Pyrmont, Horn-Bad Meinberg, Detmold, Lemgo, Bad Salzuflen, Höxter, Steinheim, Schieder-Schwalenberg, Blomberg, Augustdorf, Bad Lippspringe, Bodenwerder, Hameln, Möhnesee
+- Städte: Winterberg, Münster, Bad Salzuflen, Paderborn, Detmold, Hameln
 - Scan-Intervall: alle 3 Stunden
 
 ---

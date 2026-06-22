@@ -23,11 +23,10 @@ NEXT_PUBLIC_BACKEND_URL=https://dein-projekt.railway.app
 
 ## System Status
 - ✅ Scan läuft alle 3 Stunden (APScheduler hours=3)
-- ✅ Immowelt Scraper aktiv (Playwright + Anti-Bot)
 - ✅ eBay Kleinanzeigen Scraper aktiv (httpx + BeautifulSoup)
 - ✅ Zimmerfilter: 1–5 Zimmer (rooms=None → immer behalten)
-- ✅ Mietfilter: max 550 € Kaltmiete
-- ✅ Zielorte: 30 Städte aus Sauerland, OWL und Weserbergland
+- ✅ Mietfilter: max 650 € Kaltmiete
+- ✅ Zielorte: 6 Städte (Winterberg, Münster, Bad Salzuflen, Paderborn, Detmold, Hameln)
 - ✅ Gesuch-Inserate werden gefiltert (18 AUSSCHLUSS_KEYWORDS)
 - ✅ Dark Mode verfügbar (next-themes, System-Präferenz als Standard)
 - ✅ Mobile-responsive (Tailwind mobile-first)
@@ -39,8 +38,8 @@ NEXT_PUBLIC_BACKEND_URL=https://dein-projekt.railway.app
 ## Portale
 | Portal | Methode | Status |
 |--------|---------|--------|
-| Immowelt | Playwright + Anti-Bot | ✅ Aktiv |
 | eBay Kleinanzeigen | httpx + BeautifulSoup | ✅ Aktiv |
+| Immowelt | – | ❌ Deaktiviert |
 | ImmoScout24 | – | ❌ Entfernt |
 | Immonet | – | ❌ Entfernt (leitet auf Immowelt weiter) |
 

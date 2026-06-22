@@ -3,15 +3,14 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronDown, X, SlidersHorizontal } from 'lucide-react'
-import { DEFAULT_MAX_RENT, TARGET_CITIES } from '@/lib/searchConfig'
+import { DEFAULT_MAX_RENT, DEFAULT_SOURCE, TARGET_CITIES } from '@/lib/searchConfig'
 
 const SOURCES = [
   { value: 'ebay', label: 'eBay Kleinanz.' },
-  { value: 'immowelt', label: 'Immowelt' },
 ]
 
 const PRICE_OPTIONS = [
-  { label: 'bis 550 €', value: '550' },
+  { label: 'bis 650 €', value: '650' },
   { label: 'bis 750 €', value: '750' },
   { label: 'bis 1.000 €', value: '1000' },
   { label: 'bis 1.250 €', value: '1250' },
@@ -97,13 +96,13 @@ export default function FilterBar() {
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || defaultMaxRent)
   const [sizeKey, setSizeKey] = useState('all')
   const [selectedCities, setSelectedCities] = useState<string[]>([])
-  const [selectedSources, setSelectedSources] = useState<string[]>([])
+  const [selectedSources, setSelectedSources] = useState<string[]>([DEFAULT_SOURCE])
 
   useEffect(() => {
     const city = searchParams.get('city')
     const source = searchParams.get('source')
     setSelectedCities(city ? city.split(',') : [])
-    setSelectedSources(source ? source.split(',') : [])
+    setSelectedSources(source ? source.split(',') : [DEFAULT_SOURCE])
     setMaxPrice(searchParams.get('max_price') || defaultMaxRent)
     const minSqm = searchParams.get('min_sqm')
     const maxSqm = searchParams.get('max_sqm')
@@ -111,7 +110,7 @@ export default function FilterBar() {
     setSizeKey(matchingSize?.value || 'all')
   }, [defaultMaxRent, searchParams])
 
-  const hasFilters = selectedCities.length > 0 || selectedSources.length > 0 ||
+  const hasFilters = selectedCities.length > 0 || selectedSources.join(',') !== DEFAULT_SOURCE ||
     maxPrice !== defaultMaxRent || sizeKey !== 'all'
 
   const apply = useCallback(() => {
@@ -121,7 +120,7 @@ export default function FilterBar() {
     if (size?.minSqm) params.set('min_sqm', size.minSqm)
     if (size?.maxSqm) params.set('max_sqm', size.maxSqm)
     if (selectedCities.length > 0) params.set('city', selectedCities[0])
-    if (selectedSources.length > 0) params.set('source', selectedSources[0])
+    if (selectedSources.length > 0 && selectedSources[0] !== DEFAULT_SOURCE) params.set('source', selectedSources[0])
     router.push(`/?${params.toString()}`)
   }, [defaultMaxRent, maxPrice, sizeKey, selectedCities, selectedSources, router])
 
@@ -129,7 +128,7 @@ export default function FilterBar() {
     setMaxPrice(defaultMaxRent)
     setSizeKey('all')
     setSelectedCities([])
-    setSelectedSources([])
+    setSelectedSources([DEFAULT_SOURCE])
     router.push('/')
   }
 

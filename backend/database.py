@@ -110,8 +110,14 @@ async def similar_listing_exists(listing: Listing) -> bool:
 
 async def save_listing(listing: Listing) -> SaveListingResult:
     try:
+        if listing.source != "ebay":
+            logger.info(f"Skipped non-eBay listing: {listing.external_id} ({listing.source})")
+            return "skipped"
         if not is_target_city(listing.city):
             logger.info(f"Skipped listing outside target cities: {listing.external_id} ({listing.city})")
+            return "skipped"
+        if listing.price is not None and listing.price > DEFAULT_FILTER["max_price"]:
+            logger.info(f"Skipped listing above rent cap: {listing.external_id} ({listing.price})")
             return "skipped"
         db = get_db()
         if await listing_exists(listing.external_id) or await similar_listing_exists(listing):
@@ -180,6 +186,8 @@ async def get_listings(
         return True
 
     try:
+        if source and source != "ebay":
+            return []
         db = get_db()
         query = db.table("listings").select("*").order("created_at", desc=True)
 
@@ -189,8 +197,7 @@ async def get_listings(
             query = query.lte("price", max_price)
         if city:
             query = query.ilike("city", f"%{city}%")
-        if source:
-            query = query.eq("source", source)
+        query = query.eq("source", "ebay")
 
         query = query.limit(1000)
         result = query.execute()
@@ -219,6 +226,7 @@ async def get_stats() -> dict:
         target_rows = dedupe_listing_rows([
             row for row in sources_result.data
             if is_target_city(row.get("city"))
+            and row.get("source") == "ebay"
             and _price_within_limit(row, config.max_price)
         ])
         total = len(target_rows)

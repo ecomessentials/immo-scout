@@ -55,6 +55,48 @@ function fillTemplate(template: string, listing: Listing): string {
     .replaceAll('{zimmer}', listing.rooms ? `${listing.rooms} Zimmer` : 'der angegebenen Zimmerzahl')
 }
 
+function priceLabel(listing: Listing): string {
+  return listing.price ? `${fmt(listing.price)} €` : 'Kaltmiete auf Anfrage'
+}
+
+function messageVariationTwo(listing: Listing): string {
+  return `Hallo,
+
+ich interessiere mich für Ihre Wohnung in ${listing.city}.
+
+Ich würde sie gerne langfristig anmieten und vorab offen fragen, ob eine möblierte Untervermietung bzw. Nutzung als Ferienwohnung/Airbnb nach Absprache mit Ihnen grundsätzlich denkbar wäre.
+
+Uns ist wichtig, dass Sie mit einem zuverlässigen und finanziell starken Mieter planen können. Wenn das Objekt grundsätzlich passt, sind wir auch bereit, für eine saubere, langfristige Lösung mehr zu zahlen als andere Interessenten.
+
+Falls ja, freue ich mich über eine kurze Rückmeldung und würde gern einen Besichtigungstermin vereinbaren.
+
+Viele Grüße
+Fabio Krieger`
+}
+
+function messageVariationThree(listing: Listing): string {
+  return `Hallo,
+
+ich interessiere mich für Ihre Wohnung in ${listing.city}.
+
+Ich würde sie gerne langfristig anmieten und vorab offen fragen, ob eine möblierte Untervermietung bzw. Nutzung als Ferienwohnung/Airbnb nach Absprache mit Ihnen grundsätzlich denkbar wäre.
+
+Für Sie hätte das klare Vorteile: kein Leerstand, pünktliche Mietzahlungen, wenig Aufwand und eine professionelle Verwaltung der Wohnung. Unser Ziel ist eine einfache, stabile Lösung, bei der Sie dauerhaft planbare Mieteinnahmen haben.
+
+Falls ja, freue ich mich über eine kurze Rückmeldung und würde gern einen Besichtigungstermin vereinbaren.
+
+Viele Grüße
+Fabio Krieger`
+}
+
+function contactMessages(messageTemplate: string, listing: Listing) {
+  return [
+    { label: 'Variation 1', text: fillTemplate(messageTemplate, listing) },
+    { label: 'Variation 2', text: messageVariationTwo(listing) },
+    { label: 'Variation 3', text: messageVariationThree(listing) },
+  ]
+}
+
 interface Props {
   listing: Listing
   messageTemplate: string
@@ -64,13 +106,14 @@ interface Props {
 export default function ListingCard({ listing, messageTemplate, onStatusChange }: Props) {
   const fresh = listing.created_at && isNew(listing.created_at)
   const status = contactStatus(listing)
-  const [copied, setCopied] = useState(false)
+  const [copiedVariant, setCopiedVariant] = useState<string | null>(null)
   const [savingStatus, setSavingStatus] = useState<ContactStatus | null>(null)
+  const messages = contactMessages(messageTemplate, listing)
 
-  const copyMessage = async () => {
-    await navigator.clipboard.writeText(fillTemplate(messageTemplate, listing))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1800)
+  const copyMessage = async (label: string, text: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedVariant(label)
+    setTimeout(() => setCopiedVariant(null), 1800)
   }
 
   const setStatus = async (nextStatus: ContactStatus) => {
@@ -136,7 +179,7 @@ export default function ListingCard({ listing, messageTemplate, onStatusChange }
         <div className="flex items-end justify-between gap-3 mb-4">
           <div>
             <p className="text-xl font-bold text-primary dark:text-blue-400 leading-none">
-              {listing.price ? `${fmt(listing.price)} €` : 'Miete auf Anfrage'}
+              {priceLabel(listing)}
             </p>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {listing.sqm && (
@@ -158,16 +201,10 @@ export default function ListingCard({ listing, messageTemplate, onStatusChange }
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <button onClick={copyMessage} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-white text-xs font-medium hover:bg-primary-dark transition-colors">
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-            {copied ? 'Kopiert' : 'Text kopieren'}
-          </button>
-          <a href={listing.listing_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+        <a href={listing.listing_url} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
             <ExternalLink size={14} />
             Inserat öffnen
-          </a>
-        </div>
+        </a>
 
         <div className="grid grid-cols-4 gap-1.5 mt-2">
           <button title="Interessant" disabled={!!savingStatus} onClick={() => setStatus('interesting')} className="h-8 rounded-lg border border-gray-200 dark:border-slate-600 flex items-center justify-center text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:opacity-50">
@@ -182,6 +219,29 @@ export default function ListingCard({ listing, messageTemplate, onStatusChange }
           <button title="Abgelehnt" disabled={!!savingStatus} onClick={() => setStatus('rejected')} className="h-8 rounded-lg border border-gray-200 dark:border-slate-600 flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50">
             <XCircle size={14} />
           </button>
+        </div>
+
+        <div className="mt-4 border-t border-gray-100 dark:border-slate-700 pt-4 space-y-3">
+          <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">
+            {listing.title} — {listing.city} — {priceLabel(listing)}
+          </p>
+          {messages.map((message) => (
+            <div key={message.label} className="rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-xs font-semibold text-gray-700 dark:text-slate-300">{message.label}</p>
+                <button
+                  onClick={() => copyMessage(message.label, message.text)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 px-2 py-1 text-xs font-medium text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                  {copiedVariant === message.label ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedVariant === message.label ? 'Kopiert' : 'Kopieren'}
+                </button>
+              </div>
+              <p className="whitespace-pre-line text-xs leading-relaxed text-gray-600 dark:text-slate-300">
+                {message.text}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </article>

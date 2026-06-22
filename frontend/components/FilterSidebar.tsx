@@ -2,11 +2,10 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useState, useEffect } from 'react'
-import { DEFAULT_MAX_RENT, TARGET_CITIES } from '@/lib/searchConfig'
+import { DEFAULT_MAX_RENT, DEFAULT_SOURCE, TARGET_CITIES } from '@/lib/searchConfig'
 
 const SOURCES = [
   { value: 'ebay', label: 'eBay Kleinanz.' },
-  { value: 'immowelt', label: 'Immowelt' },
 ]
 
 const ROOM_OPTS = [
@@ -31,14 +30,14 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
   const [minSqm, setMinSqm] = useState(Number(searchParams.get('min_sqm') || 25))
   const [maxSqm, setMaxSqm] = useState(Number(searchParams.get('max_sqm') || 140))
   const [selectedCities, setSelectedCities] = useState<string[]>([])
-  const [selectedSources, setSelectedSources] = useState<string[]>([])
+  const [selectedSources, setSelectedSources] = useState<string[]>([DEFAULT_SOURCE])
   const [roomsKey, setRoomsKey] = useState('1-5 Zi')
 
   useEffect(() => {
     const cityParam = searchParams.get('city')
     const sourceParam = searchParams.get('source')
     setSelectedCities(cityParam ? cityParam.split(',') : [])
-    setSelectedSources(sourceParam ? sourceParam.split(',') : [])
+    setSelectedSources(sourceParam ? sourceParam.split(',') : [DEFAULT_SOURCE])
     const minR = searchParams.get('min_rooms')
     const maxR = searchParams.get('max_rooms')
     if (minR && maxR) {
@@ -56,7 +55,7 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
     if (roomOpt?.min) params.set('min_rooms', roomOpt.min)
     if (roomOpt?.max) params.set('max_rooms', roomOpt.max)
     if (selectedCities.length > 0) params.set('city', selectedCities[0])
-    if (selectedSources.length > 0) params.set('source', selectedSources[0])
+    if (selectedSources.length > 0 && selectedSources[0] !== DEFAULT_SOURCE) params.set('source', selectedSources[0])
     router.push(`/?${params.toString()}`)
     onMobileClose()
   }, [maxPrice, minSqm, maxSqm, roomsKey, selectedCities, selectedSources, router, onMobileClose])
@@ -67,7 +66,7 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
     setMaxSqm(140)
     setRoomsKey('1-5 Zi')
     setSelectedCities([])
-    setSelectedSources([])
+    setSelectedSources([DEFAULT_SOURCE])
     router.push('/')
     onMobileClose()
   }
@@ -91,7 +90,7 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
         <input
           type="range"
           min={300}
-          max={1500}
+          max={1000}
           step={50}
           value={maxPrice}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
@@ -99,7 +98,7 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
         />
         <div className="flex justify-between text-xs text-gray-400 mt-1">
           <span>300 €</span>
-          <span>1.500 €</span>
+          <span>1.000 €</span>
         </div>
       </div>
 
