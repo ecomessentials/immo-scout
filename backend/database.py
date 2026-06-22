@@ -172,7 +172,7 @@ async def update_listing_contact_status(listing_id: str, status: str) -> Optiona
     try:
         db = get_db()
         normalized = status.strip().lower()
-        allowed = {"new", "contacted", "reply", "rejected", "interesting"}
+        allowed = {"new", "contacted", "reply", "rejected", "interesting", "skipped"}
         if normalized not in allowed:
             raise ValueError("Invalid contact status")
 
@@ -187,6 +187,28 @@ async def update_listing_contact_status(listing_id: str, status: str) -> Optiona
         return ListingResponse(**result.data[0])
     except Exception as e:
         logger.error(f"update_listing_contact_status error for {listing_id}: {e}")
+        raise
+
+
+async def update_listing_contact_status_by_external_id(external_id: str, status: str) -> Optional[ListingResponse]:
+    try:
+        db = get_db()
+        normalized = status.strip().lower()
+        allowed = {"new", "contacted", "reply", "rejected", "interesting", "skipped"}
+        if normalized not in allowed:
+            raise ValueError("Invalid contact status")
+
+        data = {
+            "notified": False,
+            "condition": None if normalized == "new" else normalized,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        result = db.table("listings").update(data).eq("external_id", external_id).execute()
+        if not result.data:
+            return None
+        return ListingResponse(**result.data[0])
+    except Exception as e:
+        logger.error(f"update_listing_contact_status_by_external_id error for {external_id}: {e}")
         raise
 
 

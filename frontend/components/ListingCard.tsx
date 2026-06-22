@@ -22,6 +22,7 @@ const STATUS_LABELS: Record<ContactStatus, string> = {
   contacted: 'Angeschrieben',
   reply: 'Antwort',
   rejected: 'Abgelehnt',
+  skipped: 'Übersprungen',
 }
 
 const STATUS_STYLES: Record<ContactStatus, string> = {
@@ -30,6 +31,7 @@ const STATUS_STYLES: Record<ContactStatus, string> = {
   contacted: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
   reply: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   rejected: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  skipped: 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
 }
 
 function isNew(createdAt: string): boolean {
@@ -44,6 +46,7 @@ function contactStatus(listing: Listing): ContactStatus {
   if (listing.condition === 'interesting') return 'interesting'
   if (listing.condition === 'reply') return 'reply'
   if (listing.condition === 'rejected') return 'rejected'
+  if (listing.condition === 'skipped') return 'skipped'
   if (listing.condition === 'contacted' || listing.notified) return 'contacted'
   return 'new'
 }

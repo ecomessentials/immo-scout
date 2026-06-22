@@ -33,6 +33,11 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 _raw_chat_ids = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_CHAT_IDS: list[str] = [cid.strip() for cid in _raw_chat_ids.split(",") if cid.strip()]
 TELEGRAM_CHAT_ID = TELEGRAM_CHAT_IDS[0] if TELEGRAM_CHAT_IDS else ""
+_railway_public_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
+BACKEND_PUBLIC_URL = os.getenv(
+    "BACKEND_PUBLIC_URL",
+    f"https://{_railway_public_domain}" if _railway_public_domain else "",
+)
 
 IMMO_SCOUT24_CONSUMER_KEY = os.getenv("IMMO_SCOUT24_CONSUMER_KEY", "")
 IMMO_SCOUT24_CONSUMER_SECRET = os.getenv("IMMO_SCOUT24_CONSUMER_SECRET", "")

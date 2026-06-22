@@ -3,12 +3,12 @@ import json
 import logging
 from contextlib import asynccontextmanager
 from typing import Optional
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database import get_config, update_config, get_listings, get_stats, get_scan_logs, update_listing_contact_status
-from telegram_bot import send_startup_message, send_test_message
+from telegram_bot import configure_webhook, handle_telegram_update, send_startup_message, send_test_message
 from scheduler import run_all_scrapers
 from models import ContactUpdate, SearchFilter, ListingResponse
 from log_stream import SSELogHandler, log_event_stream
@@ -58,6 +58,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Scheduler failed to start: {e}")
 
+    await configure_webhook()
     await send_startup_message()
     yield
     scheduler.shutdown()
@@ -248,6 +249,26 @@ async def api_telegram_test():
     if success:
         return {"status": "ok", "message": "Test message sent"}
     raise HTTPException(status_code=500, detail="Failed to send Telegram message – check credentials")
+
+
+@app.post("/api/telegram/webhook")
+async def api_telegram_webhook(request: Request):
+    payload = await request.json()
+    try:
+        return await handle_telegram_update(payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Telegram webhook error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/telegram/set-webhook")
+async def api_telegram_set_webhook():
+    success = await configure_webhook()
+    if success:
+        return {"status": "ok"}
+    raise HTTPException(status_code=500, detail="Webhook konnte nicht gesetzt werden. BACKEND_PUBLIC_URL prüfen.")
 
 
 @app.get("/api/scan/stream")
