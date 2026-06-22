@@ -18,6 +18,8 @@ FOREIGN_LOCATION_KEYS = {
     "berlin", "hamburg", "bremen", "schwerin", "rostock", "stralsund", "greifswald",
     "mainz", "koblenz", "trier", "ludwigshafen", "kaiserslautern", "speyer", "worms",
     "bayern", "mecklenburg", "rheinland", "pfalz",
+    "doerpen", "dörpen", "waren", "chemnitz", "wiesmoor", "nuernberg", "nürnberg",
+    "leipzig", "mannheim", "warnemuende", "warnemünde", "dieburg", "machern", "gunzenhausen",
 }
 
 

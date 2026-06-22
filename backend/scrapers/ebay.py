@@ -10,6 +10,15 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.kleinanzeigen.de"
 
+KLEINANZEIGEN_LOCATIONS = {
+    "Winterberg": ("winterberg", "1014"),
+    "Münster": ("muenster-%28westfalen%29", "929"),
+    "Bad Salzuflen": ("bad-salzuflen", "1899"),
+    "Paderborn": ("paderborn", "2157"),
+    "Detmold": ("detmold", "1792"),
+    "Hameln": ("hameln", "3061"),
+}
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -30,10 +39,12 @@ HEADERS = {
 class EbayScraper(BaseScraper):
     name = "ebay"
 
-    def _page_url(self, slug: str, page: int, radius: int = 15) -> str:
-        # Radius encoded as {slug}+{radius}km in the path (Kleinanzeigen URL convention)
-        city_part = f"{slug}+{radius}km" if radius > 0 else slug
-        base = f"{BASE_URL}/s-wohnung-mieten/{city_part}/c203"
+    def _page_url(self, city: str, page: int, radius: int = 0) -> str:
+        slug, location_id = KLEINANZEIGEN_LOCATIONS.get(city, (self.city_slug(city), ""))
+        if location_id:
+            base = f"{BASE_URL}/s-wohnung-mieten/{slug}/k0c203l{location_id}"
+        else:
+            base = f"{BASE_URL}/s-wohnung-mieten/{slug}/k0c203"
         return base if page == 1 else f"{base}?pageNum={page}"
 
     async def _fetch(self, url: str, city: str = "") -> str | None:
@@ -125,8 +136,7 @@ class EbayScraper(BaseScraper):
                 item_city = ""
                 if city_el:
                     spans = city_el.select("span")
-                    if spans:
-                        item_city = spans[-1].get_text(strip=True)
+                    item_city = spans[-1].get_text(strip=True) if spans else city_el.get_text(" ", strip=True)
                 verified_city = self.verified_target_city(item_city, city)
                 if not verified_city:
                     logger.info(f"[eBay] [{city}] Ort nicht verifiziert, überspringe: {item_city or title[:60]}")
@@ -141,7 +151,7 @@ class EbayScraper(BaseScraper):
                 sqm = self.parse_sqm(title + " " + description)
 
                 rooms_match = re.search(
-                    r"(\d+[\.,]?\d*)\s*(?:zimmer|zi\.?\b|-zimmer)",
+                    r"(\d+[\.,]?\d*)\s*(?:zimmer|zi\.?|-zimmer)",
                     title + " " + (description or ""),
                     re.IGNORECASE,
                 )
@@ -171,14 +181,13 @@ class EbayScraper(BaseScraper):
 
     async def scrape(self, city: str, f: SearchFilter) -> list[Listing]:
         await asyncio.sleep(2)  # polite rate limit
-        slug = self.city_slug(city)
         radius = f.city_radius.get(city, f.default_radius)
         logger.info(f"[eBay] [{city}] Umkreis: {radius} km")
         listings: list[Listing] = []
         seen_ids: set[str] = set()
 
         for page_num in range(1, 4):  # up to 3 pages
-            url = self._page_url(slug, page_num, radius)
+            url = self._page_url(city, page_num, radius)
             logger.info(f"[eBay] [{city}] Page {page_num}: {url}")
 
             html = await self._fetch(url, city)

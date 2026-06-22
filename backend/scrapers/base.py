@@ -36,6 +36,36 @@ def _city_key(value: str) -> str:
 
 _TARGET_CITY_BY_KEY = {_city_key(city): city for city in TARGET_CITIES}
 _TARGET_CITY_KEYS = set(_TARGET_CITY_BY_KEY)
+_POSTAL_CITY_MAP = {
+    "59955": "Winterberg",
+    "48143": "Münster",
+    "48145": "Münster",
+    "48147": "Münster",
+    "48149": "Münster",
+    "48151": "Münster",
+    "48153": "Münster",
+    "48155": "Münster",
+    "48157": "Münster",
+    "48159": "Münster",
+    "48161": "Münster",
+    "48163": "Münster",
+    "48165": "Münster",
+    "48167": "Münster",
+    "32105": "Bad Salzuflen",
+    "32107": "Bad Salzuflen",
+    "32108": "Bad Salzuflen",
+    "33098": "Paderborn",
+    "33100": "Paderborn",
+    "33102": "Paderborn",
+    "33104": "Paderborn",
+    "33106": "Paderborn",
+    "32756": "Detmold",
+    "32758": "Detmold",
+    "32760": "Detmold",
+    "31785": "Hameln",
+    "31787": "Hameln",
+    "31789": "Hameln",
+}
 
 
 class BaseScraper(ABC):
@@ -96,6 +126,14 @@ class BaseScraper(ABC):
             return None
 
         raw = location_text.strip()
+        postal_match = re.search(r"\b(\d{5})\b", raw)
+        if postal_match:
+            city = _POSTAL_CITY_MAP.get(postal_match.group(1))
+            if city:
+                if expected_city and _city_key(expected_city) != _city_key(city):
+                    return None
+                return city
+
         location = _city_key(raw)
         location = re.sub(r"\b\d{4,5}\b", " ", location)
         location = re.sub(r"\s+", " ", location).strip(" ,;-")
