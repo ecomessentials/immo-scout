@@ -7,7 +7,7 @@ from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from database import get_config, update_config, get_listings, get_stats, get_scan_logs, update_listing_contact_status
+from database import get_config, update_config, get_listings, get_stats, get_scan_logs, reset_all_scan_data, update_listing_contact_status
 from telegram_bot import send_startup_message, send_test_message
 from scheduler import run_all_scrapers
 from models import ContactUpdate, SearchFilter, ListingResponse
@@ -220,6 +220,13 @@ async def api_stats():
 @app.get("/api/scan-logs")
 async def api_scan_logs():
     return await get_scan_logs(limit=10)
+
+
+@app.post("/api/admin/reset-data")
+async def api_admin_reset_data(confirm: str = Query("")):
+    if confirm != "RESET_ALL_LISTINGS":
+        raise HTTPException(status_code=400, detail="Missing reset confirmation")
+    return await reset_all_scan_data()
 
 
 @app.post("/api/trigger-scan")

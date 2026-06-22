@@ -319,3 +319,17 @@ async def get_scan_logs(limit: int = 10) -> list[dict]:
     except Exception as e:
         logger.error(f"get_scan_logs error: {e}")
         return []
+
+
+async def reset_all_scan_data() -> dict:
+    try:
+        db = get_db()
+        listings = db.table("listings").delete().gte("created_at", "1900-01-01").execute()
+        logs = db.table("scan_logs").delete().gte("started_at", "1900-01-01").execute()
+        return {
+            "listings_deleted": len(listings.data or []),
+            "scan_logs_deleted": len(logs.data or []),
+        }
+    except Exception as e:
+        logger.error(f"reset_all_scan_data error: {e}")
+        raise
