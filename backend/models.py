@@ -35,11 +35,11 @@ class ListingResponse(Listing):
 
 
 class SearchFilter(BaseModel):
-    max_price: int = 650
-    min_sqm: int = 25
-    max_sqm: int = 140
-    min_rooms: Optional[float] = 1.0
-    max_rooms: Optional[float] = 5.0
+    max_price: int = 1000
+    min_sqm: int = 1
+    max_sqm: int = 250
+    min_rooms: Optional[float] = None
+    max_rooms: Optional[float] = None
     cities: list[str] = [
         "Winterberg", "Münster", "Bad Salzuflen", "Paderborn", "Detmold", "Hameln",
     ]

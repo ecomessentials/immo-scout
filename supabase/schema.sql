@@ -38,11 +38,11 @@ CREATE TABLE IF NOT EXISTS scan_logs (
 -- Tabelle: search_config (immer nur 1 Zeile)
 CREATE TABLE IF NOT EXISTS search_config (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  max_price       INTEGER DEFAULT 650,
-  min_sqm         INTEGER DEFAULT 25,
-  max_sqm         INTEGER DEFAULT 140,
-  min_rooms       NUMERIC(4,1) DEFAULT 1,
-  max_rooms       NUMERIC(4,1) DEFAULT 5,
+  max_price       INTEGER DEFAULT 1000,
+  min_sqm         INTEGER DEFAULT 1,
+  max_sqm         INTEGER DEFAULT 250,
+  min_rooms       NUMERIC(4,1),
+  max_rooms       NUMERIC(4,1),
   default_radius  INTEGER DEFAULT 0,
   city_radius     JSONB DEFAULT '{}'::jsonb,
   cities          TEXT[] DEFAULT '{"Winterberg","Münster","Bad Salzuflen","Paderborn","Detmold","Hameln"}',
@@ -57,18 +57,18 @@ ON CONFLICT DO NOTHING;
 
 -- Migration: neue Spalten zu bestehender Tabelle hinzufügen (idempotent)
 ALTER TABLE search_config
-  ADD COLUMN IF NOT EXISTS min_rooms      NUMERIC(4,1) DEFAULT 1,
-  ADD COLUMN IF NOT EXISTS max_rooms      NUMERIC(4,1) DEFAULT 5,
+  ADD COLUMN IF NOT EXISTS min_rooms      NUMERIC(4,1),
+  ADD COLUMN IF NOT EXISTS max_rooms      NUMERIC(4,1),
   ADD COLUMN IF NOT EXISTS default_radius INTEGER DEFAULT 0,
   ADD COLUMN IF NOT EXISTS city_radius    JSONB DEFAULT '{}'::jsonb;
 
 UPDATE search_config
 SET
-  max_price = 650,
-  min_sqm = 25,
-  max_sqm = 140,
-  min_rooms = 1,
-  max_rooms = 5,
+  max_price = 1000,
+  min_sqm = 1,
+  max_sqm = 250,
+  min_rooms = NULL,
+  max_rooms = NULL,
   default_radius = 0,
   city_radius = '{}'::jsonb,
   cities = '{"Winterberg","Münster","Bad Salzuflen","Paderborn","Detmold","Hameln"}',

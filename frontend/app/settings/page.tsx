@@ -138,10 +138,10 @@ export default function SettingsPage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <Field label="Mindest-Zimmer">
-            <Input type="number" min={1} max={10} value={config.min_rooms ?? 3} onChange={e => setConfig(c => ({ ...c, min_rooms: Number(e.target.value) }))} />
+            <Input type="number" min={1} max={10} placeholder="Alle" value={config.min_rooms ?? ''} onChange={e => setConfig(c => ({ ...c, min_rooms: e.target.value ? Number(e.target.value) : undefined }))} />
           </Field>
           <Field label="Max-Zimmer">
-            <Input type="number" min={1} max={10} value={config.max_rooms ?? 4} onChange={e => setConfig(c => ({ ...c, max_rooms: Number(e.target.value) }))} />
+            <Input type="number" min={1} max={10} placeholder="Alle" value={config.max_rooms ?? ''} onChange={e => setConfig(c => ({ ...c, max_rooms: e.target.value ? Number(e.target.value) : undefined }))} />
           </Field>
         </div>
 

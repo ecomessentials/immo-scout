@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useState, useEffect } from 'react'
-import { DEFAULT_MAX_RENT, TARGET_CITIES } from '@/lib/searchConfig'
+import { DEFAULT_MAX_RENT, DEFAULT_MAX_SQM, DEFAULT_MIN_SQM, TARGET_CITIES } from '@/lib/searchConfig'
 
 const SOURCES = [
   { value: 'ebay', label: 'eBay Kleinanz.' },
@@ -29,11 +29,11 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
   const searchParams = useSearchParams()
 
   const [maxPrice, setMaxPrice] = useState(Number(searchParams.get('max_price') || DEFAULT_MAX_RENT))
-  const [minSqm, setMinSqm] = useState(Number(searchParams.get('min_sqm') || 25))
-  const [maxSqm, setMaxSqm] = useState(Number(searchParams.get('max_sqm') || 140))
+  const [minSqm, setMinSqm] = useState(Number(searchParams.get('min_sqm') || DEFAULT_MIN_SQM))
+  const [maxSqm, setMaxSqm] = useState(Number(searchParams.get('max_sqm') || DEFAULT_MAX_SQM))
   const [selectedCities, setSelectedCities] = useState<string[]>([])
   const [selectedSources, setSelectedSources] = useState<string[]>([])
-  const [roomsKey, setRoomsKey] = useState('1-5 Zi')
+  const [roomsKey, setRoomsKey] = useState('Alle')
 
   useEffect(() => {
     const cityParam = searchParams.get('city')
@@ -45,14 +45,16 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
     if (minR && maxR) {
       const match = ROOM_OPTS.find(o => o.min === minR && o.max === maxR)
       setRoomsKey(match ? match.label : '1-5 Zi')
+    } else {
+      setRoomsKey('Alle')
     }
   }, [searchParams])
 
   const applyFilters = useCallback(() => {
     const params = new URLSearchParams()
     if (maxPrice !== DEFAULT_MAX_RENT) params.set('max_price', String(maxPrice))
-    if (minSqm !== 25) params.set('min_sqm', String(minSqm))
-    if (maxSqm !== 140) params.set('max_sqm', String(maxSqm))
+    if (minSqm !== DEFAULT_MIN_SQM) params.set('min_sqm', String(minSqm))
+    if (maxSqm !== DEFAULT_MAX_SQM) params.set('max_sqm', String(maxSqm))
     const roomOpt = ROOM_OPTS.find(r => r.label === roomsKey)
     if (roomOpt?.min) params.set('min_rooms', roomOpt.min)
     if (roomOpt?.max) params.set('max_rooms', roomOpt.max)
@@ -64,9 +66,9 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
 
   const reset = () => {
     setMaxPrice(DEFAULT_MAX_RENT)
-    setMinSqm(25)
-    setMaxSqm(140)
-    setRoomsKey('1-5 Zi')
+    setMinSqm(DEFAULT_MIN_SQM)
+    setMaxSqm(DEFAULT_MAX_SQM)
+    setRoomsKey('Alle')
     setSelectedCities([])
     setSelectedSources([])
     router.push('/')
@@ -92,7 +94,7 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
         <input
           type="range"
           min={300}
-          max={1000}
+          max={2000}
           step={50}
           value={maxPrice}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
@@ -100,7 +102,7 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
         />
         <div className="flex justify-between text-xs text-gray-400 mt-1">
           <span>300 €</span>
-          <span>1.000 €</span>
+          <span>2.000 €</span>
         </div>
       </div>
 
@@ -109,18 +111,18 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
           Wohnfläche: {minSqm} – {maxSqm} m²
         </label>
         <input
-          type="range" min={20} max={160} step={5} value={minSqm}
+          type="range" min={1} max={250} step={5} value={minSqm}
           onChange={(e) => setMinSqm(Math.min(Number(e.target.value), maxSqm - 5))}
           className="w-full accent-blue-600 mb-1"
         />
         <input
-          type="range" min={20} max={160} step={5} value={maxSqm}
+          type="range" min={1} max={250} step={5} value={maxSqm}
           onChange={(e) => setMaxSqm(Math.max(Number(e.target.value), minSqm + 5))}
           className="w-full accent-blue-600"
         />
         <div className="flex justify-between text-xs text-gray-400 mt-1">
-          <span>20 m²</span>
-          <span>160 m²</span>
+          <span>1 m²</span>
+          <span>250 m²</span>
         </div>
       </div>
 

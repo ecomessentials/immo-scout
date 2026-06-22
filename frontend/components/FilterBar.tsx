@@ -22,6 +22,7 @@ const PRICE_OPTIONS = [
 
 const SIZE_OPTIONS = [
   { label: 'Alle Größen', value: 'all', minSqm: '', maxSqm: '' },
+  { label: '1 – 250 m²', value: '1-250', minSqm: '1', maxSqm: '250' },
   { label: '25 – 60 m²', value: '25-60', minSqm: '25', maxSqm: '60' },
   { label: '40 – 90 m²', value: '40-90', minSqm: '40', maxSqm: '90' },
   { label: '60 – 120 m²', value: '60-120', minSqm: '60', maxSqm: '120' },
