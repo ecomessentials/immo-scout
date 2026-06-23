@@ -2,7 +2,13 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from database import get_config, is_database_configured, save_listing, save_scan_log
-from telegram_bot import is_telegram_configured, send_listing_notifications_batch, send_error_alert
+from telegram_bot import (
+    is_telegram_configured,
+    send_listing_notifications_batch,
+    send_error_alert,
+    send_scan_started_message,
+    send_scan_summary_message,
+)
 from models import ScanResult
 from scrapers import EbayScraper, ImmoScout24Scraper, ImmoweltScraper
 
@@ -60,6 +66,9 @@ async def _run_all_scrapers_locked(progress_queue: asyncio.Queue | None = None) 
         await _emit(progress_queue, "error", "Scan ist deaktiviert – bitte in den Einstellungen aktivieren.")
         await _emit(progress_queue, "done", "")
         return
+
+    if telegram_ready:
+        await send_scan_started_message(config.cities, config.max_price, config.default_radius)
 
     scrapers = [EbayScraper(), ImmoweltScraper(), ImmoScout24Scraper()]
     all_listings = []
@@ -160,6 +169,16 @@ async def _run_all_scrapers_locked(progress_queue: asyncio.Queue | None = None) 
             f"{scraper_dup.get(scraper.name, 0)} Duplikate, "
             f"{scraper_skipped.get(scraper.name, 0)} außerhalb Zielorte, "
             f"{scraper_save_errors.get(scraper.name, 0)} Speicherfehler"
+        )
+
+    if telegram_ready:
+        await send_scan_summary_message(
+            total_found=len(unique),
+            new_count=new_count,
+            duplicate_count=duplicate_count,
+            skipped_count=skipped_count,
+            error_count=len(errors) + save_error_count,
+            by_source={_LABELS.get(source, source): count for source, count in scraper_found.items()},
         )
 
     if new_count > 0:

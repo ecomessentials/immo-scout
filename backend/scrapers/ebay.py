@@ -38,15 +38,19 @@ HEADERS = {
 
 class EbayScraper(BaseScraper):
     name = "ebay"
+    max_pages = 25
 
-    def _page_url(self, city: str, page: int, radius: int = 0) -> str:
+    def _filtered_page_url(self, city: str, page: int, f: SearchFilter, radius: int = 0) -> str:
         slug, location_id = KLEINANZEIGEN_LOCATIONS.get(city, (self.city_slug(city), ""))
         radius_part = f"r{radius}" if radius > 0 else ""
+        price_part = f"preis::{f.max_price}"
         if location_id:
-            base = f"{BASE_URL}/s-wohnung-mieten/{slug}/k0c203l{location_id}{radius_part}"
+            suffix = f"{price_part}/c203l{location_id}{radius_part}"
         else:
-            base = f"{BASE_URL}/s-wohnung-mieten/{slug}/k0c203{radius_part}"
-        return base if page == 1 else f"{base}?pageNum={page}"
+            suffix = f"{price_part}/c203{radius_part}"
+        if page == 1:
+            return f"{BASE_URL}/s-wohnung-mieten/{slug}/{suffix}"
+        return f"{BASE_URL}/s-wohnung-mieten/{slug}/seite:{page}/{suffix}"
 
     async def _fetch(self, url: str, city: str = "") -> str | None:
         try:
@@ -140,9 +144,11 @@ class EbayScraper(BaseScraper):
                     item_city = spans[-1].get_text(strip=True) if spans else city_el.get_text(" ", strip=True)
                 verified_city = self.verified_target_city(item_city, city)
                 if not verified_city:
-                    logger.info(f"[eBay] [{city}] Ort nicht verifiziert, überspringe: {item_city or title[:60]}")
-                    continue
-                if self.mentions_other_location(f"{title} {description}", verified_city):
+                    if self.mentions_other_location(f"{item_city} {title} {description}", city):
+                        logger.info(f"[eBay] [{city}] Fremder Ort im Text, überspringe: {item_city or title[:60]}")
+                        continue
+                    verified_city = city
+                if self.mentions_other_location(f"{item_city} {title} {description}", verified_city):
                     logger.info(f"[eBay] [{city}] Fremder Ort im Text, überspringe: {title[:80]}")
                     continue
 
@@ -188,9 +194,10 @@ class EbayScraper(BaseScraper):
         logger.info(f"[eBay] [{city}] Umkreis: {radius} km")
         listings: list[Listing] = []
         seen_ids: set[str] = set()
+        empty_pages = 0
 
-        for page_num in range(1, 4):  # up to 3 pages
-            url = self._page_url(city, page_num, radius)
+        for page_num in range(1, self.max_pages + 1):
+            url = self._filtered_page_url(city, page_num, f, radius)
             logger.info(f"[eBay] [{city}] Page {page_num}: {url}")
 
             html = await self._fetch(url, city)
@@ -201,13 +208,17 @@ class EbayScraper(BaseScraper):
             listings.extend(page_listings)
 
             if not page_listings:
+                empty_pages += 1
                 logger.info(f"[eBay] [{city}] Page {page_num}: 0 Items – stoppe Pagination")
                 if page_num == 1:
                     logger.warning(f"[eBay] [{city}] 0 Items auf Seite 1. HTML-Snippet: {html[:2000]}")
-                break
+                if empty_pages >= 2:
+                    break
+            else:
+                empty_pages = 0
 
             logger.info(f"[eBay] [{city}] Page {page_num}: {len(page_listings)} Items")
-            if page_num < 3:
+            if page_num < self.max_pages:
                 await asyncio.sleep(2)
 
         logger.info(f"[eBay] [{city}] Gesamt: {len(listings)} Listings")

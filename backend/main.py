@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +54,7 @@ async def lifespan(app: FastAPI):
             max_instances=1,
             coalesce=True,
             misfire_grace_time=1800,
+            next_run_time=datetime.now(timezone.utc),
         )
         scheduler.start()
         logger.info("Scheduler started, interval: 1 hour")

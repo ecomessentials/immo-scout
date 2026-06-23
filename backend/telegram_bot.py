@@ -259,6 +259,55 @@ async def send_startup_message() -> None:
             logger.error(f"send_startup_message failed for {chat_id}: {e}")
 
 
+async def send_scan_started_message(cities: list[str], max_price: int, radius: int) -> None:
+    bot = _get_bot()
+    if not bot:
+        return
+    city_text = ", ".join(cities)
+    text = (
+        "🔎 Scan startet jetzt\n\n"
+        f"Städte: {city_text}\n"
+        f"Umkreis: {radius} km\n"
+        f"Max. Kaltmiete: {max_price} €"
+    )
+    for chat_id in TELEGRAM_CHAT_IDS:
+        try:
+            await bot.send_message(chat_id=chat_id, text=text)
+        except TelegramError as e:
+            logger.error(f"send_scan_started_message failed for {chat_id}: {e}")
+
+
+async def send_scan_summary_message(
+    total_found: int,
+    new_count: int,
+    duplicate_count: int,
+    skipped_count: int,
+    error_count: int,
+    by_source: dict[str, int],
+) -> None:
+    bot = _get_bot()
+    if not bot:
+        return
+
+    source_lines = "\n".join(f"- {source}: {count}" for source, count in by_source.items())
+    if not source_lines:
+        source_lines = "- keine Treffer"
+    text = (
+        "✅ Scan abgeschlossen\n\n"
+        f"Gefunden gesamt: {total_found}\n"
+        f"Neu: {new_count}\n"
+        f"Bereits bekannt: {duplicate_count}\n"
+        f"Übersprungen: {skipped_count}\n"
+        f"Fehler: {error_count}\n\n"
+        f"Nach Portal:\n{source_lines}"
+    )
+    for chat_id in TELEGRAM_CHAT_IDS:
+        try:
+            await bot.send_message(chat_id=chat_id, text=text)
+        except TelegramError as e:
+            logger.error(f"send_scan_summary_message failed for {chat_id}: {e}")
+
+
 async def send_error_alert(scraper: str, error: str) -> None:
     global _consecutive_errors
     _consecutive_errors += 1
