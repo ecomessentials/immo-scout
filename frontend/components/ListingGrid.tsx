@@ -140,7 +140,7 @@ export default function ListingGrid({ listings, loading, error, onLoadMore, hasM
             onClick={onLoadMore}
             className="px-8 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 shadow-sm transition-all duration-200"
           >
-            Mehr laden
+            10 weitere anzeigen
           </button>
         </div>
       )}

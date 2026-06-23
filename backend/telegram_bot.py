@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 _consecutive_errors = 0
 _error_threshold = 3
+_notification_batches: dict[str, list[Listing]] = {}
+_BATCH_SIZE = 10
 
 
 def _get_bot() -> Bot | None:
@@ -63,7 +65,7 @@ def _listing_keyboard(listing: Listing) -> InlineKeyboardMarkup:
     ])
 
 
-async def send_listing_notification(listing: Listing) -> None:
+async def _send_listing_notification_to_chats(listing: Listing, chat_ids: list[str | int]) -> None:
     bot = _get_bot()
     if not bot:
         return
@@ -73,7 +75,7 @@ async def send_listing_notification(listing: Listing) -> None:
     keyboard = _listing_keyboard(listing)
     await asyncio.sleep(0.5)
 
-    for chat_id in TELEGRAM_CHAT_IDS:
+    for chat_id in chat_ids:
         if listing.image_url:
             try:
                 await bot.send_photo(
@@ -95,6 +97,47 @@ async def send_listing_notification(listing: Listing) -> None:
             )
         except TelegramError as e:
             logger.error(f"send_message failed for {listing.external_id} to {chat_id}: {e}")
+
+
+async def send_listing_notification(listing: Listing) -> None:
+    await _send_listing_notification_to_chats(listing, TELEGRAM_CHAT_IDS)
+
+
+async def _send_more_prompt(chat_ids: list[str | int], batch_id: str, next_offset: int, total: int) -> None:
+    bot = _get_bot()
+    if not bot:
+        return
+
+    remaining = max(total - next_offset, 0)
+    if remaining <= 0:
+        return
+
+    next_count = min(_BATCH_SIZE, remaining)
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"📦 {next_count} weitere anzeigen", callback_data=f"more|{batch_id}|{next_offset}")],
+    ])
+    text = (
+        f"📦 Es gibt noch {remaining} weitere neue Wohnungen aus diesem Scan.\n"
+        f"Klicke auf den Button, dann schicke ich dir die nächsten {next_count}."
+    )
+    for chat_id in chat_ids:
+        try:
+            await bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
+        except TelegramError as e:
+            logger.error(f"send_more_prompt failed for {chat_id}: {e}")
+
+
+async def send_listing_notifications_batch(listings: list[Listing], batch_id: str) -> int:
+    if not listings:
+        return 0
+
+    _notification_batches[batch_id] = listings
+    first_batch = listings[:_BATCH_SIZE]
+    for listing in first_batch:
+        await send_listing_notification(listing)
+
+    await _send_more_prompt(TELEGRAM_CHAT_IDS, batch_id, len(first_batch), len(listings))
+    return len(first_batch)
 
 
 async def configure_webhook() -> bool:
@@ -131,7 +174,44 @@ async def handle_telegram_update(update: dict) -> dict:
             await bot.answer_callback_query(query_id, text="Unbekannte Aktion")
         return {"ok": False, "detail": "Invalid callback data"}
 
-    action, external_id = data.split("|", 1)
+    parts = data.split("|")
+    action = parts[0]
+
+    if action == "more":
+        if len(parts) != 3:
+            if query_id:
+                await bot.answer_callback_query(query_id, text="Ungültiger Mehr-Button")
+            return {"ok": False, "detail": "Invalid more callback data"}
+
+        batch_id = parts[1]
+        try:
+            offset = int(parts[2])
+        except ValueError:
+            offset = 0
+
+        batch = _notification_batches.get(batch_id, [])
+        if not batch:
+            if query_id:
+                await bot.answer_callback_query(query_id, text="Dieser Scan ist nicht mehr im Speicher")
+            if chat_id:
+                await bot.send_message(chat_id=chat_id, text="Dieser Scan ist nicht mehr im Speicher. Bitte öffne die Webseite für die vollständige Liste.")
+            return {"ok": False, "detail": "Batch not found"}
+
+        next_items = batch[offset:offset + _BATCH_SIZE]
+        if query_id:
+            await bot.answer_callback_query(query_id, text=f"{len(next_items)} weitere Wohnungen")
+        if chat_id:
+            for listing in next_items:
+                await _send_listing_notification_to_chats(listing, [chat_id])
+            await _send_more_prompt([chat_id], batch_id, offset + len(next_items), len(batch))
+        return {"ok": True, "action": action, "batch_id": batch_id, "offset": offset}
+
+    if len(parts) != 2:
+        if query_id:
+            await bot.answer_callback_query(query_id, text="Unbekannte Aktion")
+        return {"ok": False, "detail": "Invalid callback data"}
+
+    external_id = parts[1]
     status_by_action = {
         "send": "send_requested",
         "skip": "skipped",

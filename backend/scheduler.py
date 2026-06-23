@@ -2,7 +2,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from database import get_config, is_database_configured, save_listing, save_scan_log
-from telegram_bot import is_telegram_configured, send_listing_notification, send_error_alert
+from telegram_bot import is_telegram_configured, send_listing_notifications_batch, send_error_alert
 from models import ScanResult
 from scrapers import EbayScraper, ImmoScout24Scraper, ImmoweltScraper
 
@@ -121,6 +121,7 @@ async def _run_all_scrapers_locked(progress_queue: asyncio.Queue | None = None) 
     skipped_count = 0
     save_error_count = 0
     telegram_sent = 0
+    telegram_queue = []
     # Per-scraper DB stats
     scraper_new: dict[str, int] = {s.name: 0 for s in scrapers}
     scraper_dup: dict[str, int] = {s.name: 0 for s in scrapers}
@@ -132,8 +133,7 @@ async def _run_all_scrapers_locked(progress_queue: asyncio.Queue | None = None) 
         if save_result == "new":
             new_count += 1
             scraper_new[listing.source] = scraper_new.get(listing.source, 0) + 1
-            await send_listing_notification(listing)
-            telegram_sent += 1
+            telegram_queue.append(listing)
         elif save_result == "duplicate":
             duplicate_count += 1
             scraper_dup[listing.source] = scraper_dup.get(listing.source, 0) + 1
@@ -143,6 +143,10 @@ async def _run_all_scrapers_locked(progress_queue: asyncio.Queue | None = None) 
         else:
             save_error_count += 1
             scraper_save_errors[listing.source] = scraper_save_errors.get(listing.source, 0) + 1
+
+    if telegram_ready and telegram_queue:
+        batch_id = start.strftime("%Y%m%d%H%M%S")
+        telegram_sent = await send_listing_notifications_batch(telegram_queue, batch_id)
 
     logger.info(
         f"Gespeichert: {new_count} neu, {duplicate_count} bereits in DB, "

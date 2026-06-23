@@ -136,7 +136,8 @@ function Dashboard() {
   const searchParams = useSearchParams()
   const [offset, setOffset] = useState(0)
   const [messageTemplate, setMessageTemplate] = useState(DEFAULT_MESSAGE)
-  const LIMIT = 500
+  const LIMIT = 10
+  const filterKey = searchParams.toString()
 
   useEffect(() => {
     const saved = localStorage.getItem('contact_message_template')
@@ -146,6 +147,10 @@ function Dashboard() {
   useEffect(() => {
     localStorage.setItem('contact_message_template', messageTemplate)
   }, [messageTemplate])
+
+  useEffect(() => {
+    setOffset(0)
+  }, [filterKey])
 
   const filterParams: FilterParams = {
     max_price: searchParams.get('max_price') ? Number(searchParams.get('max_price')) : DEFAULT_MAX_RENT,
@@ -162,7 +167,7 @@ function Dashboard() {
   })
 
   const { data: listings = [], isLoading: listingsLoading, error, mutate: mutateListings } = useSWR(
-    ['listings', searchParams.toString(), offset],
+    ['listings', filterKey, offset],
     () => getListings({ ...filterParams, limit: LIMIT + offset }),
     { refreshInterval: 60000 }
   )
@@ -206,7 +211,7 @@ function Dashboard() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mietwohnungen für Airbnb</h1>
         <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-          {listingsLoading ? 'Lädt…' : `${listings.length} von ${displayStats?.total ?? listings.length} Inseraten angezeigt`}
+          {listingsLoading ? 'Lädt…' : `${listings.length} Inserate angezeigt`}
         </p>
       </div>
 
