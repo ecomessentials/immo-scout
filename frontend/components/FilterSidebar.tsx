@@ -29,8 +29,8 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
   const searchParams = useSearchParams()
 
   const [maxPrice, setMaxPrice] = useState(Number(searchParams.get('max_price') || DEFAULT_MAX_RENT))
-  const [minSqm, setMinSqm] = useState(Number(searchParams.get('min_sqm') || DEFAULT_MIN_SQM))
-  const [maxSqm, setMaxSqm] = useState(Number(searchParams.get('max_sqm') || DEFAULT_MAX_SQM))
+  const [minSqm, setMinSqm] = useState<number | undefined>(searchParams.get('min_sqm') ? Number(searchParams.get('min_sqm')) : DEFAULT_MIN_SQM)
+  const [maxSqm, setMaxSqm] = useState<number | undefined>(searchParams.get('max_sqm') ? Number(searchParams.get('max_sqm')) : DEFAULT_MAX_SQM)
   const [selectedCities, setSelectedCities] = useState<string[]>([])
   const [selectedSources, setSelectedSources] = useState<string[]>([])
   const [roomsKey, setRoomsKey] = useState('Alle')
@@ -53,8 +53,8 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
   const applyFilters = useCallback(() => {
     const params = new URLSearchParams()
     if (maxPrice !== DEFAULT_MAX_RENT) params.set('max_price', String(maxPrice))
-    if (minSqm !== DEFAULT_MIN_SQM) params.set('min_sqm', String(minSqm))
-    if (maxSqm !== DEFAULT_MAX_SQM) params.set('max_sqm', String(maxSqm))
+    if (minSqm != null && minSqm !== DEFAULT_MIN_SQM) params.set('min_sqm', String(minSqm))
+    if (maxSqm != null && maxSqm !== DEFAULT_MAX_SQM) params.set('max_sqm', String(maxSqm))
     const roomOpt = ROOM_OPTS.find(r => r.label === roomsKey)
     if (roomOpt?.min) params.set('min_rooms', roomOpt.min)
     if (roomOpt?.max) params.set('max_rooms', roomOpt.max)
@@ -108,16 +108,16 @@ export default function FilterSidebar({ mobileOpen, onMobileClose }: Props) {
 
       <div className="mb-5">
         <label className="text-xs font-medium text-gray-600 mb-1 block">
-          Wohnfläche: {minSqm} – {maxSqm} m²
+          Wohnfläche: alle Größen
         </label>
         <input
-          type="range" min={1} max={250} step={5} value={minSqm}
-          onChange={(e) => setMinSqm(Math.min(Number(e.target.value), maxSqm - 5))}
+          type="range" min={1} max={250} step={5} value={minSqm ?? 1}
+          onChange={(e) => setMinSqm(Math.min(Number(e.target.value), (maxSqm ?? 250) - 5))}
           className="w-full accent-blue-600 mb-1"
         />
         <input
-          type="range" min={1} max={250} step={5} value={maxSqm}
-          onChange={(e) => setMaxSqm(Math.max(Number(e.target.value), minSqm + 5))}
+          type="range" min={1} max={250} step={5} value={maxSqm ?? 250}
+          onChange={(e) => setMaxSqm(Math.max(Number(e.target.value), (minSqm ?? 1) + 5))}
           className="w-full accent-blue-600"
         />
         <div className="flex justify-between text-xs text-gray-400 mt-1">

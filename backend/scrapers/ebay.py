@@ -41,10 +41,11 @@ class EbayScraper(BaseScraper):
 
     def _page_url(self, city: str, page: int, radius: int = 0) -> str:
         slug, location_id = KLEINANZEIGEN_LOCATIONS.get(city, (self.city_slug(city), ""))
+        radius_part = f"r{radius}" if radius > 0 else ""
         if location_id:
-            base = f"{BASE_URL}/s-wohnung-mieten/{slug}/k0c203l{location_id}"
+            base = f"{BASE_URL}/s-wohnung-mieten/{slug}/k0c203l{location_id}{radius_part}"
         else:
-            base = f"{BASE_URL}/s-wohnung-mieten/{slug}/k0c203"
+            base = f"{BASE_URL}/s-wohnung-mieten/{slug}/k0c203{radius_part}"
         return base if page == 1 else f"{base}?pageNum={page}"
 
     async def _fetch(self, url: str, city: str = "") -> str | None:
@@ -157,10 +158,12 @@ class EbayScraper(BaseScraper):
                 )
                 rooms = float(rooms_match.group(1).replace(",", ".")) if rooms_match else None
 
-                # Filters: rent, living space, and rooms if the portal exposes them.
+                # Filters: rent only by default; space/rooms are optional when configured.
                 if price and price > f.max_price:
                     continue
-                if sqm and (sqm < f.min_sqm or sqm > f.max_sqm):
+                if sqm and f.min_sqm is not None and sqm < f.min_sqm:
+                    continue
+                if sqm and f.max_sqm is not None and sqm > f.max_sqm:
                     continue
                 if rooms is not None and f.min_rooms is not None and f.max_rooms is not None:
                     if rooms < f.min_rooms or rooms > f.max_rooms:

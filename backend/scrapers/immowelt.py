@@ -32,9 +32,12 @@ class ImmoweltScraper(BaseScraper):
         slug = self.city_slug(city)
         url = (
             f"{BASE_URL}/suche/{slug}/wohnungen/mieten"
-            f"?wflmi={f.min_sqm}&wflma={f.max_sqm}"
-            f"&umkreis={radius}"
+            f"?umkreis={radius}"
         )
+        if f.min_sqm is not None:
+            url += f"&wflmi={f.min_sqm}"
+        if f.max_sqm is not None:
+            url += f"&wflma={f.max_sqm}"
         if page > 1:
             url += f"&cp={page}"
         return url
@@ -190,7 +193,9 @@ class ImmoweltScraper(BaseScraper):
 
                             if price and price > f.max_price:
                                 continue
-                            if sqm and (sqm < f.min_sqm or sqm > f.max_sqm):
+                            if sqm and f.min_sqm is not None and sqm < f.min_sqm:
+                                continue
+                            if sqm and f.max_sqm is not None and sqm > f.max_sqm:
                                 continue
 
                             listings.append(Listing(

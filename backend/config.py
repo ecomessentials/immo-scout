@@ -13,14 +13,14 @@ TARGET_CITIES = [
 ]
 
 DEFAULT_FILTER = {
-    "max_price": 1000,
-    "min_sqm": 1,
-    "max_sqm": 250,
+    "max_price": 700,
+    "min_sqm": None,
+    "max_sqm": None,
     "min_rooms": None,
     "max_rooms": None,
     "cities": TARGET_CITIES,
-    # 0 km keeps the scan focused on the selected cities only.
-    "default_radius": 0,
+    # 10 km keeps the scan focused but includes nearby villages around each city.
+    "default_radius": 10,
     "city_radius": {},
     "keywords": [],
     "active": True,

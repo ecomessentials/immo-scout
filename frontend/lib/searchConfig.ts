@@ -9,9 +9,9 @@ export const TARGET_CITIES = [
   'Hameln',
 ]
 
-export const DEFAULT_MAX_RENT = 1000
-export const DEFAULT_MIN_SQM = 1
-export const DEFAULT_MAX_SQM = 250
+export const DEFAULT_MAX_RENT = 700
+export const DEFAULT_MIN_SQM = undefined
+export const DEFAULT_MAX_SQM = undefined
 export const DEFAULT_MIN_ROOMS = undefined
 export const DEFAULT_MAX_ROOMS = undefined
 export const DEFAULT_SCAN_INTERVAL = 60
@@ -23,7 +23,7 @@ export const DEFAULT_CONFIG: SearchFilter = {
   min_rooms: DEFAULT_MIN_ROOMS,
   max_rooms: DEFAULT_MAX_ROOMS,
   cities: TARGET_CITIES,
-  default_radius: 0,
+  default_radius: 10,
   city_radius: {},
   keywords: [],
   active: true,

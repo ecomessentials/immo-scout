@@ -175,7 +175,9 @@ class ImmoScout24Scraper(BaseScraper):
                         rooms = self._rooms(real_estate)
                         if price is not None and price > f.max_price:
                             continue
-                        if sqm and (sqm < f.min_sqm or sqm > f.max_sqm):
+                        if sqm and f.min_sqm is not None and sqm < f.min_sqm:
+                            continue
+                        if sqm and f.max_sqm is not None and sqm > f.max_sqm:
                             continue
                         if rooms is not None and f.min_rooms is not None and f.max_rooms is not None:
                             if rooms < f.min_rooms or rooms > f.max_rooms:

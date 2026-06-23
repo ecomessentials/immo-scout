@@ -35,16 +35,16 @@ class ListingResponse(Listing):
 
 
 class SearchFilter(BaseModel):
-    max_price: int = 1000
-    min_sqm: int = 1
-    max_sqm: int = 250
+    max_price: int = 700
+    min_sqm: Optional[float] = None
+    max_sqm: Optional[float] = None
     min_rooms: Optional[float] = None
     max_rooms: Optional[float] = None
     cities: list[str] = [
         "Winterberg", "Münster", "Bad Salzuflen", "Paderborn", "Detmold", "Hameln",
     ]
     # default_radius: km Umkreis für alle Städte; city_radius überschreibt pro Stadt
-    default_radius: int = 0
+    default_radius: int = 10
     city_radius: dict[str, int] = {}
     keywords: list[str] = []
     active: bool = True

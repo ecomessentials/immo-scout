@@ -130,10 +130,10 @@ export default function SettingsPage() {
             <Input type="number" value={config.max_price} onChange={e => setConfig(c => ({ ...c, max_price: Number(e.target.value) }))} />
           </Field>
           <Field label="Min. Fläche (m²)">
-            <Input type="number" value={config.min_sqm} onChange={e => setConfig(c => ({ ...c, min_sqm: Number(e.target.value) }))} />
+            <Input type="number" placeholder="Alle" value={config.min_sqm ?? ''} onChange={e => setConfig(c => ({ ...c, min_sqm: e.target.value ? Number(e.target.value) : undefined }))} />
           </Field>
           <Field label="Max. Fläche (m²)">
-            <Input type="number" value={config.max_sqm} onChange={e => setConfig(c => ({ ...c, max_sqm: Number(e.target.value) }))} />
+            <Input type="number" placeholder="Alle" value={config.max_sqm ?? ''} onChange={e => setConfig(c => ({ ...c, max_sqm: e.target.value ? Number(e.target.value) : undefined }))} />
           </Field>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
