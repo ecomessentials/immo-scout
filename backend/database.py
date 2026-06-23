@@ -172,12 +172,12 @@ async def update_listing_contact_status(listing_id: str, status: str) -> Optiona
     try:
         db = get_db()
         normalized = status.strip().lower()
-        allowed = {"new", "contacted", "reply", "rejected", "interesting", "skipped"}
+        allowed = {"new", "contacted", "reply", "rejected", "interesting", "skipped", "send_requested", "failed"}
         if normalized not in allowed:
             raise ValueError("Invalid contact status")
 
         data = {
-            "notified": normalized != "new",
+            "notified": normalized in {"contacted", "reply", "rejected", "interesting", "skipped", "failed"},
             "condition": None if normalized == "new" else normalized,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -194,12 +194,12 @@ async def update_listing_contact_status_by_external_id(external_id: str, status:
     try:
         db = get_db()
         normalized = status.strip().lower()
-        allowed = {"new", "contacted", "reply", "rejected", "interesting", "skipped"}
+        allowed = {"new", "contacted", "reply", "rejected", "interesting", "skipped", "send_requested", "failed"}
         if normalized not in allowed:
             raise ValueError("Invalid contact status")
 
         data = {
-            "notified": False,
+            "notified": normalized in {"contacted", "reply", "rejected", "interesting", "skipped", "failed"},
             "condition": None if normalized == "new" else normalized,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -210,6 +210,23 @@ async def update_listing_contact_status_by_external_id(external_id: str, status:
     except Exception as e:
         logger.error(f"update_listing_contact_status_by_external_id error for {external_id}: {e}")
         raise
+
+
+async def get_send_queue(limit: int = 10) -> list[ListingResponse]:
+    try:
+        db = get_db()
+        result = (
+            db.table("listings")
+            .select("*")
+            .eq("condition", "send_requested")
+            .order("updated_at")
+            .limit(limit)
+            .execute()
+        )
+        return [ListingResponse(**row) for row in result.data]
+    except Exception as e:
+        logger.error(f"get_send_queue error: {e}")
+        return []
 
 
 async def get_listings(

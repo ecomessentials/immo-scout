@@ -53,7 +53,7 @@ def _listing_keyboard(listing: Listing) -> InlineKeyboardMarkup:
     external_id = listing.external_id
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("✅ Gesendet", callback_data=f"sent|{external_id}"),
+            InlineKeyboardButton("🚀 Automatisch senden", callback_data=f"send|{external_id}"),
             InlineKeyboardButton("✏️ Bearbeiten", callback_data=f"edit|{external_id}"),
             InlineKeyboardButton("❌ Überspringen", callback_data=f"skip|{external_id}"),
         ],
@@ -133,7 +133,7 @@ async def handle_telegram_update(update: dict) -> dict:
 
     action, external_id = data.split("|", 1)
     status_by_action = {
-        "sent": "contacted",
+        "send": "send_requested",
         "skip": "skipped",
     }
 
@@ -143,7 +143,7 @@ async def handle_telegram_update(update: dict) -> dict:
         if chat_id:
             await bot.send_message(
                 chat_id=chat_id,
-                text="✏️ Kopiere den Entwurf aus der Nachricht, passe ihn an und sende ihn im Inserat. Danach drückst du ✅ Gesendet.",
+                text="✏️ Kopiere den Entwurf aus der Nachricht, passe ihn an und sende ihn im Inserat. Danach kannst du 🚀 Automatisch senden drücken oder manuell auf der Webseite als angeschrieben markieren.",
             )
         return {"ok": True, "action": action, "external_id": external_id}
 
@@ -155,12 +155,12 @@ async def handle_telegram_update(update: dict) -> dict:
 
     updated = await update_listing_contact_status_by_external_id(external_id, status)
     if query_id:
-        label = "als angeschrieben markiert" if status == "contacted" else "übersprungen"
+        label = "Sendeauftrag erstellt" if status == "send_requested" else "übersprungen"
         await bot.answer_callback_query(query_id, text=f"✅ {label}")
 
     if chat_id and updated:
-        if status == "contacted":
-            await bot.send_message(chat_id=chat_id, text=f"✅ Gesendet markiert: {updated.title}")
+        if status == "send_requested":
+            await bot.send_message(chat_id=chat_id, text=f"🚀 Sendeauftrag erstellt: {updated.title}\nDer lokale Mac-Worker verschickt die Nachricht automatisch, sobald er läuft.")
         elif status == "skipped":
             await bot.send_message(chat_id=chat_id, text=f"⏭️ Übersprungen: {updated.title}")
 

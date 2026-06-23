@@ -17,7 +17,7 @@ export interface Listing {
   price_per_sqm: number | null
 }
 
-export type ContactStatus = 'new' | 'interesting' | 'contacted' | 'reply' | 'rejected' | 'skipped'
+export type ContactStatus = 'new' | 'interesting' | 'send_requested' | 'contacted' | 'reply' | 'rejected' | 'skipped' | 'failed'
 
 export interface Stats {
   total: number

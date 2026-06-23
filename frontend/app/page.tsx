@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { getListings, getStats, updateContactStatus } from '@/lib/api'
 import type { ContactStatus, FilterParams, Listing, Stats } from '@/lib/types'
-import { CheckCircle2, MessageCircle, Send, Sparkles, Star, XCircle, CircleSlash } from 'lucide-react'
+import { CheckCircle2, MessageCircle, Send, Sparkles, Star, XCircle, CircleSlash, Rocket, TriangleAlert } from 'lucide-react'
 import StatsBar from '@/components/StatsBar'
 import FilterBar from '@/components/FilterBar'
 import ListingGrid from '@/components/ListingGrid'
@@ -47,6 +47,12 @@ const CONTACT_DASHBOARD: Array<{
     className: 'border-l-blue-500 text-blue-600 dark:text-blue-300',
   },
   {
+    status: 'send_requested',
+    label: 'Sendeauftrag',
+    icon: <Rocket size={18} />,
+    className: 'border-l-indigo-500 text-indigo-600 dark:text-indigo-300',
+  },
+  {
     status: 'reply',
     label: 'Antwort',
     icon: <MessageCircle size={18} />,
@@ -64,13 +70,21 @@ const CONTACT_DASHBOARD: Array<{
     icon: <CircleSlash size={18} />,
     className: 'border-l-gray-400 text-gray-500 dark:text-slate-300',
   },
+  {
+    status: 'failed',
+    label: 'Fehler',
+    icon: <TriangleAlert size={18} />,
+    className: 'border-l-rose-500 text-rose-600 dark:text-rose-300',
+  },
 ]
 
 function getContactStatus(listing: Listing): ContactStatus {
   if (listing.condition === 'interesting') return 'interesting'
+  if (listing.condition === 'send_requested') return 'send_requested'
   if (listing.condition === 'reply') return 'reply'
   if (listing.condition === 'rejected') return 'rejected'
   if (listing.condition === 'skipped') return 'skipped'
+  if (listing.condition === 'failed') return 'failed'
   if (listing.condition === 'contacted' || listing.notified) return 'contacted'
   return 'new'
 }
@@ -80,7 +94,7 @@ function ContactDashboard({ listings }: { listings: Listing[] }) {
     const status = getContactStatus(listing)
     acc[status] += 1
     return acc
-  }, { new: 0, interesting: 0, contacted: 0, reply: 0, rejected: 0, skipped: 0 })
+  }, { new: 0, interesting: 0, send_requested: 0, contacted: 0, reply: 0, rejected: 0, skipped: 0, failed: 0 })
   const handled = listings.length - counts.new
 
   return (
@@ -98,7 +112,7 @@ function ContactDashboard({ listings }: { listings: Listing[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         {CONTACT_DASHBOARD.map((item) => (
           <div
             key={item.status}

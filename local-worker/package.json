@@ -1,0 +1,15 @@
+{
+  "name": "immo-scout-local-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lokaler Mac-Worker zum automatischen Versenden von Wohnungsanschreiben.",
+  "main": "src/worker.js",
+  "scripts": {
+    "start": "node src/worker.js",
+    "test": "node --check src/worker.js && node --check src/playwrightSender.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "playwright": "^1.44.0"
+  }
+}

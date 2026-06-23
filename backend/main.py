@@ -7,7 +7,8 @@ from fastapi import FastAPI, BackgroundTasks, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from database import get_config, update_config, get_listings, get_stats, get_scan_logs, update_listing_contact_status
+from database import get_config, update_config, get_listings, get_stats, get_scan_logs, get_send_queue, update_listing_contact_status
+from contact_templates import rotated_contact_template
 from telegram_bot import configure_webhook, handle_telegram_update, send_startup_message, send_test_message
 from scheduler import run_all_scrapers
 from models import ContactUpdate, SearchFilter, ListingResponse
@@ -200,6 +201,33 @@ async def api_listing_detail(listing_id: str):
 
 @app.patch("/api/listings/{listing_id}/contact", response_model=ListingResponse)
 async def api_update_listing_contact(listing_id: str, payload: ContactUpdate):
+    try:
+        updated = await update_listing_contact_status(listing_id, payload.status)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Listing not found")
+        return updated
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/automation/send-queue")
+async def api_automation_send_queue(limit: int = Query(10, ge=1, le=50)):
+    listings = await get_send_queue(limit=limit)
+    return [
+        {
+            **listing.model_dump(mode="json"),
+            "message": rotated_contact_template(listing),
+        }
+        for listing in listings
+    ]
+
+
+@app.post("/api/automation/listings/{listing_id}/status", response_model=ListingResponse)
+async def api_automation_update_status(listing_id: str, payload: ContactUpdate):
     try:
         updated = await update_listing_contact_status(listing_id, payload.status)
         if not updated:

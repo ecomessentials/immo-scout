@@ -19,19 +19,23 @@ const SOURCE_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<ContactStatus, string> = {
   new: 'Neu',
   interesting: 'Interessant',
+  send_requested: 'Sendeauftrag',
   contacted: 'Angeschrieben',
   reply: 'Antwort',
   rejected: 'Abgelehnt',
   skipped: 'Übersprungen',
+  failed: 'Fehler',
 }
 
 const STATUS_STYLES: Record<ContactStatus, string> = {
   new: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
   interesting: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  send_requested: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
   contacted: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
   reply: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   rejected: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
   skipped: 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
+  failed: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
 }
 
 function isNew(createdAt: string): boolean {
@@ -44,9 +48,11 @@ function fmt(n: number): string {
 
 function contactStatus(listing: Listing): ContactStatus {
   if (listing.condition === 'interesting') return 'interesting'
+  if (listing.condition === 'send_requested') return 'send_requested'
   if (listing.condition === 'reply') return 'reply'
   if (listing.condition === 'rejected') return 'rejected'
   if (listing.condition === 'skipped') return 'skipped'
+  if (listing.condition === 'failed') return 'failed'
   if (listing.condition === 'contacted' || listing.notified) return 'contacted'
   return 'new'
 }
